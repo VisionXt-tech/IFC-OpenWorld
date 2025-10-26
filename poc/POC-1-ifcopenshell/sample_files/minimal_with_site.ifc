@@ -1,0 +1,38 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('minimal_test_rome.ifc','2025-10-23T12:00:00',('POC Tester'),('IFC-OpenWorld'),'IfcOpenShell','IfcOpenShell 0.7.0','');
+FILE_SCHEMA(('IFC4'));
+ENDSEC;
+
+DATA;
+/* Project */
+#1=IFCPROJECT('0vPqr8NfD9_Q5j7W8EXAMPLE',$,'Test Project - Rome Colosseum Area',$,$,$,$,(#10),#20);
+
+/* Geometric Context */
+#10=IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.0E-5,#11,$);
+#11=IFCAXIS2PLACEMENT3D(#12,$,$);
+#12=IFCCARTESIANPOINT((0.,0.,0.));
+
+/* Units */
+#20=IFCUNITASSIGNMENT((#21,#22,#23));
+#21=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);
+#22=IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);
+#23=IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.);
+
+/* Site with Rome coordinates */
+#100=IFCSITE('2vQ8R3fLD0HwHqLGxzVIlK',$,'Test Site - Rome',$,$,#101,$,$,.ELEMENT.,(41,53,24,800000),(12,29,32,400000),50.0,$,$);
+#101=IFCLOCALPLACEMENT($,#102);
+#102=IFCAXIS2PLACEMENT3D(#12,$,$);
+
+/* Building */
+#200=IFCBUILDING('3wR9T4gME1IxRqMHyzWJmL',$,'Test Building',$,$,#201,$,$,.ELEMENT.,$,$,#100);
+#201=IFCLOCALPLACEMENT(#101,#202);
+#202=IFCAXIS2PLACEMENT3D(#12,$,$);
+
+/* Relationships */
+#300=IFCRELAGGREGATES('4xS0U5hNF2JyStNIz0XKnM',$,$,$,#1,(#100));
+#301=IFCRELAGGREGATES('5yT1V6iOG3KzTuOJ01YLoN',$,$,$,$,#100,(#200));
+
+ENDSEC;
+END-ISO-10303-21;

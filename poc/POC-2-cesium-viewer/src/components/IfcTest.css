@@ -1,0 +1,272 @@
+.ifc-test {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.ifc-test h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 10px;
+}
+
+/* Status Card */
+.status-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 5px solid #95a5a6;
+}
+
+.status-card.status-init {
+  border-left-color: #3498db;
+}
+
+.status-card.status-loading,
+.status-card.status-parsing,
+.status-card.status-extracting {
+  border-left-color: #f39c12;
+}
+
+.status-card.status-complete {
+  border-left-color: #27ae60;
+}
+
+.status-card.status-error {
+  border-left-color: #e74c3c;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.status-phase {
+  font-weight: bold;
+  font-size: 12px;
+  color: #7f8c8d;
+  letter-spacing: 1px;
+}
+
+.fps-monitor {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  background: #ecf0f1;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.status-message {
+  margin: 10px 0;
+  color: #2c3e50;
+  font-size: 15px;
+}
+
+/* Progress Bar */
+.progress-bar {
+  height: 8px;
+  background: #ecf0f1;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3498db, #2ecc71);
+  transition: width 0.3s ease;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary,
+.file-label {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-secondary,
+.file-label {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled),
+.file-label:hover {
+  background: #7f8c8d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(127, 140, 141, 0.3);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Error Card */
+.error-card {
+  background: #ffe6e6;
+  border: 2px solid #e74c3c;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 20px;
+  color: #c0392b;
+}
+
+/* Results */
+.results {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.results h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 10px;
+}
+
+.result-section {
+  margin-bottom: 25px;
+}
+
+.result-section h4 {
+  color: #34495e;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+table td:first-child {
+  font-weight: 600;
+  color: #7f8c8d;
+  width: 200px;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Badges */
+.badge-pass,
+.badge-fail,
+.badge-warn {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.badge-pass {
+  background: #d5f4e6;
+  color: #27ae60;
+}
+
+.badge-fail {
+  background: #fadbd8;
+  color: #e74c3c;
+}
+
+.badge-warn {
+  background: #fcf3cf;
+  color: #f39c12;
+}
+
+/* Verdict */
+.verdict {
+  margin-top: 30px;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.verdict-pass {
+  background: linear-gradient(135deg, #d5f4e6 0%, #a8e6cf 100%);
+  border: 2px solid #27ae60;
+}
+
+.verdict-fail {
+  background: linear-gradient(135deg, #fadbd8 0%, #f5b7b1 100%);
+  border: 2px solid #e74c3c;
+}
+
+.verdict h3 {
+  margin-top: 0;
+  border-bottom: none;
+  font-size: 20px;
+}
+
+.verdict-pass h3 {
+  color: #27ae60;
+}
+
+.verdict-fail h3 {
+  color: #e74c3c;
+}
+
+.verdict p {
+  margin: 10px 0;
+  font-size: 15px;
+  color: #2c3e50;
+}
+
+.verdict ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 15px 0 0 0;
+}
+
+.verdict li {
+  padding: 8px 0;
+  font-size: 14px;
+  color: #34495e;
+}

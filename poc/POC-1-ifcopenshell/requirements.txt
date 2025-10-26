@@ -1,0 +1,7 @@
+# POC-1: IfcOpenShell Dependencies
+
+# Core IFC parser (buildingSMART reference implementation)
+ifcopenshell>=0.7.0
+
+# Optional: For better error messages
+colorama>=0.4.6

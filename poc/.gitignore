@@ -1,0 +1,46 @@
+# POC .gitignore - Budget Zero Edition
+
+# Python virtual environments
+POC-1-ifcopenshell/venv/
+POC-1-ifcopenshell/**/__pycache__/
+POC-1-ifcopenshell/**/*.pyc
+POC-1-ifcopenshell/extraction_results.json
+
+# Node.js dependencies
+POC-2-cesium-viewer/node_modules/
+POC-2-cesium-viewer/dist/
+POC-2-cesium-viewer/.vite/
+
+POC-3-upload-test/node_modules/
+POC-3-upload-test/uploads/
+POC-3-upload-test/*.bin
+POC-3-upload-test/*.ifc
+
+# Docker volumes
+POC-4-postgis-test/.postgres-data/
+
+# Test files (IFC files can be large)
+**/*.ifc
+!POC-1-ifcopenshell/sample_files/minimal_with_site.ifc
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp

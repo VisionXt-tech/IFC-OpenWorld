@@ -1,0 +1,114 @@
+# IFC-OpenWorld .gitattributes
+# Ensures consistent line endings across Windows/macOS/Linux
+
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# ============================================
+# SOURCE CODE
+# ============================================
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.sql text eol=lf
+*.prisma text eol=lf
+
+# ============================================
+# CONFIGURATION FILES
+# ============================================
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.config text eol=lf
+.env* text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+
+# ============================================
+# DOCUMENTATION
+# ============================================
+*.md text eol=lf
+*.markdown text eol=lf
+*.txt text eol=lf
+*.rst text eol=lf
+LICENSE text eol=lf
+README text eol=lf
+
+# ============================================
+# WEB ASSETS
+# ============================================
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.sass text eol=lf
+*.less text eol=lf
+*.svg text eol=lf
+*.xml text eol=lf
+
+# ============================================
+# WINDOWS SPECIFIC (keep CRLF)
+# ============================================
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# ============================================
+# BINARY FILES (don't modify)
+# ============================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.bz2 binary
+*.7z binary
+
+*.mp4 binary
+*.mov binary
+*.avi binary
+*.mp3 binary
+*.wav binary
+
+# IFC files (binary)
+*.ifc binary
+
+# 3D model files
+*.glb binary
+*.gltf binary
+*.obj binary
+*.fbx binary
+*.dae binary
+
+# WASM files
+*.wasm binary
+
+# ============================================
+# EXCLUDE FROM EXPORTS
+# ============================================
+.gitattributes export-ignore
+.gitignore export-ignore
+.github/ export-ignore
+.vscode/ export-ignore
+poc/ export-ignore
+docs/development/ export-ignore
