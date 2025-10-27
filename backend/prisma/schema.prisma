@@ -1,0 +1,67 @@
+// Prisma schema for IFC-OpenWorld
+// PostgreSQL 15 + PostGIS 3.4
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  engineType      = "binary"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis(version: "3.4.1"), uuid_ossp(map: "uuid-ossp")]
+}
+
+model IFCFile {
+  id                String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fileName          String      @map("file_name")
+  fileSize          Int         @map("file_size")
+  s3Key             String      @map("s3_key")
+  uploadStatus      UploadStatus @default(pending) @map("upload_status")
+  processingStatus  ProcessingStatus @default(not_started) @map("processing_status")
+  uploadedAt        DateTime?   @map("uploaded_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  buildings         Building[]
+
+  @@map("ifc_files")
+}
+
+model Building {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ifcFileId   String   @map("ifc_file_id") @db.Uuid
+  name        String?
+  address     String?
+  city        String?
+  country     String?
+  height      Float?
+  floorCount  Int?     @map("floor_count")
+  // PostGIS GEOGRAPHY type for WGS84 coordinates
+  location    Unsupported("geography(Point, 4326)")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ifcFile     IFCFile  @relation(fields: [ifcFileId], references: [id], onDelete: Cascade)
+
+  @@index([location], map: "idx_buildings_location", type: Gist)
+  @@map("buildings")
+}
+
+enum UploadStatus {
+  pending
+  completed
+  failed
+
+  @@map("upload_status")
+}
+
+enum ProcessingStatus {
+  not_started
+  processing
+  completed
+  failed
+
+  @@map("processing_status")
+}
