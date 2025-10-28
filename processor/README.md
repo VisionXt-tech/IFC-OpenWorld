@@ -201,8 +201,25 @@ Failed tasks update the database with:
 ### Run Tests
 
 ```bash
-pytest tests/ -v --cov=app
+# Run all tests with coverage
+pytest tests/ -v --cov=app --cov-report=term-missing
+
+# Run with HTML coverage report
+pytest tests/ --cov=app --cov-report=html
+
+# Run specific test file
+pytest tests/test_ifc_parser.py -v
+
+# Run with markers
+pytest tests/ -m unit  # Run only unit tests
 ```
+
+**Test Results** (2025-10-28):
+- ✅ 43/44 tests passing (97.7%)
+- ✅ 77% code coverage
+- ✅ 2.26 seconds execution time
+
+See [TEST-RESULTS.md](TEST-RESULTS.md) for detailed test report.
 
 ### Test with Sample IFC File
 

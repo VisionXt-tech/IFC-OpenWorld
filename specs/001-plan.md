@@ -1537,13 +1537,13 @@ export const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
 #### Milestone 2: IFC Processor Service (Week 2)
 
-- **Task 2.1**: Set up Python FastAPI project with IfcOpenShell
-- **Task 2.2**: Implement Celery worker for IFC parsing
-- **Task 2.3**: Extract IfcSite coordinates (handle DMS → decimal conversion)
-- **Task 2.4**: Integrate ClamAV malware scanning
-- **Task 2.5**: Update database record with extracted coordinates
-- **Task 2.6**: Handle error cases (malformed IFC, missing coordinates)
-- **Task 2.7**: Write pytest tests with sample IFC files
+- **Task 2.1**: ✅ Set up Python FastAPI project with IfcOpenShell
+- **Task 2.2**: ✅ Implement Celery worker for IFC parsing
+- **Task 2.3**: ✅ Extract IfcSite coordinates (handle DMS → decimal conversion)
+- **Task 2.4**: ⏳ Integrate ClamAV malware scanning
+- **Task 2.5**: ✅ Update database record with extracted coordinates
+- **Task 2.6**: ✅ Handle error cases (malformed IFC, missing coordinates)
+- **Task 2.7**: ✅ Write pytest tests with sample IFC files (43/44 passing, 77% coverage)
 
 #### Milestone 3: Frontend Components (Week 3-4)
 
