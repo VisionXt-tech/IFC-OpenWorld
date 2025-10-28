@@ -77,6 +77,24 @@ services:
     networks:
       - ifc-network
 
+  clamav:
+    image: clamav/clamav:latest
+    container_name: ifc-openworld-clamav
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    environment:
+      - CLAMAV_NO_FRESHCLAM=false
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - ifc-network
+
 volumes:
   postgres_data:
     name: ifc-openworld-postgres-data
@@ -84,6 +102,8 @@ volumes:
     name: ifc-openworld-minio-data
   redis_data:
     name: ifc-openworld-redis-data
+  clamav_data:
+    name: ifc-openworld-clamav-data
 
 networks:
   ifc-network:

@@ -59,7 +59,31 @@ def process_ifc_file(self, file_id: str, s3_key: str) -> Dict[str, Any]:
         local_file_path = download_from_s3(s3_key)
         logger.info(f"Downloaded IFC file to: {local_file_path}")
 
-        # Step 2: Parse IFC file and extract coordinates
+        # Step 2: Scan for malware (if enabled)
+        if settings.clamav_enabled:
+            from ..services.malware_scanner import scan_ifc_file
+
+            try:
+                scan_result = scan_ifc_file(
+                    local_file_path,
+                    clamav_host=settings.clamav_host,
+                    clamav_port=settings.clamav_port
+                )
+
+                if scan_result["is_infected"]:
+                    virus_name = scan_result["virus_name"]
+                    error_msg = f"Malware detected: {virus_name}"
+                    logger.error(f"File {file_id} infected with {virus_name}")
+                    update_file_status(file_id, "completed", "failed", error_message=error_msg)
+                    os.unlink(local_file_path)
+                    raise ValueError(error_msg)
+
+                logger.info(f"Malware scan passed: {scan_result['scan_result']}")
+            except RuntimeError as e:
+                # ClamAV connection failed - log warning but continue
+                logger.warning(f"ClamAV scan failed, continuing without scan: {e}")
+
+        # Step 3: Parse IFC file and extract coordinates
         result = parse_ifc_file(local_file_path)
         latitude = result["latitude"]
         longitude = result["longitude"]
@@ -67,13 +91,13 @@ def process_ifc_file(self, file_id: str, s3_key: str) -> Dict[str, Any]:
 
         logger.info(f"Extracted coordinates: lat={latitude}, lon={longitude}")
 
-        # Step 3: Update database with coordinates
+        # Step 4: Update database with coordinates
         building_id = update_database(file_id, latitude, longitude, metadata)
 
-        # Step 4: Update file processing status to 'completed'
+        # Step 5: Update file processing status to 'completed'
         update_file_status(file_id, "completed", "completed")
 
-        # Step 5: Cleanup temp file
+        # Step 6: Cleanup temp file
         os.unlink(local_file_path)
         logger.info(f"Cleaned up temp file: {local_file_path}")
 

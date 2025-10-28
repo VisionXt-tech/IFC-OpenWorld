@@ -59,17 +59,26 @@ Required environment variables:
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection string
 - `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
+- `CLAMAV_HOST`, `CLAMAV_PORT`, `CLAMAV_ENABLED`: ClamAV malware scanning
 
 ## Running the Service
 
-### Start Redis (if not running)
+### Start Required Services
 
 ```bash
-# Docker
+# Start all services (PostgreSQL, Redis, MinIO, ClamAV)
+cd ../backend
+docker-compose up -d
+
+# Or start individual services:
+# Redis
 docker run -d -p 6379:6379 redis:7-alpine
 
-# Or use existing Redis from docker-compose
+# ClamAV
+docker run -d -p 3310:3310 clamav/clamav:latest
 ```
+
+**Note**: ClamAV takes ~2 minutes to start as it downloads virus definitions on first run.
 
 ### Start Celery Worker
 
@@ -214,10 +223,11 @@ pytest tests/test_ifc_parser.py -v
 pytest tests/ -m unit  # Run only unit tests
 ```
 
-**Test Results** (2025-10-28):
-- ✅ 43/44 tests passing (97.7%)
-- ✅ 77% code coverage
-- ✅ 2.26 seconds execution time
+**Test Results** (2025-10-28 Updated):
+- ✅ 62/63 tests passing (98.4%)
+- ✅ 78% code coverage
+- ✅ 3.96 seconds execution time
+- ✅ **ClamAV malware scanning tests included**
 
 See [TEST-RESULTS.md](TEST-RESULTS.md) for detailed test report.
 

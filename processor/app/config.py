@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 100
     processing_timeout_seconds: int = 300
 
+    # ClamAV
+    clamav_host: str = "localhost"
+    clamav_port: int = 3310
+    clamav_enabled: bool = True
+
     # Logging
     log_level: str = "INFO"
 
