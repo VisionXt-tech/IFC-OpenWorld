@@ -15,16 +15,8 @@ import './CesiumGlobe.css';
 
 export interface CesiumGlobeProps {
   /**
-   * Optional initial camera position
-   * Default: Rome, Italy (Colosseum coordinates from POC-1)
-   */
-  initialPosition?: {
-    longitude: number;
-    latitude: number;
-    height: number;
-  };
-  /**
    * Callback when globe is ready
+   * Provides viewer instance for camera control
    */
   onReady?: (viewer: Cesium.Viewer) => void;
   /**
@@ -33,12 +25,29 @@ export interface CesiumGlobeProps {
   onError?: (error: Error) => void;
 }
 
+/**
+ * Helper function to fly camera to specific coordinates
+ * Use this after upload to zoom to building location
+ */
+export function flyToLocation(
+  viewer: Cesium.Viewer,
+  longitude: number,
+  latitude: number,
+  height: number = 5000,
+  duration: number = 2
+): void {
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, height),
+    orientation: {
+      heading: Cesium.Math.toRadians(0),
+      pitch: Cesium.Math.toRadians(-45),
+      roll: 0.0
+    },
+    duration
+  });
+}
+
 function CesiumGlobe({
-  initialPosition = {
-    longitude: 12.492333, // Rome, Colosseum
-    latitude: 41.890222,
-    height: 5000
-  },
   onReady,
   onError
 }: CesiumGlobeProps) {
@@ -87,26 +96,21 @@ function CesiumGlobe({
 
       viewer.current = viewerInstance;
 
-      // Fly to initial position
-      viewerInstance.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(
-          initialPosition.longitude,
-          initialPosition.latitude,
-          initialPosition.height
-        ),
+      // Set initial camera to view the whole Earth
+      viewerInstance.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(0, 20, 20000000), // Global view
         orientation: {
-          heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-45),
-          roll: 0.0
-        },
-        duration: 2
+          heading: 0,
+          pitch: Cesium.Math.toRadians(-90), // Look straight down
+          roll: 0
+        }
       });
 
       const elapsed = performance.now() - startTime;
 
       if (config.features.debug) {
         console.log(`[CesiumGlobe] Initialized in ${(elapsed / 1000).toFixed(3)}s`);
-        console.log(`[CesiumGlobe] Camera: ${initialPosition.latitude}°, ${initialPosition.longitude}°`);
+        console.log(`[CesiumGlobe] Camera: Global view (20M meters altitude)`);
         console.log(`[CesiumGlobe] Ion token: ${config.cesium.ionToken ? 'Configured' : 'Not set'}`);
       }
 
@@ -126,7 +130,7 @@ function CesiumGlobe({
         viewer.current = null;
       }
     };
-  }, [initialPosition.longitude, initialPosition.latitude, initialPosition.height, onReady, onError]);
+  }, []); // Empty dependency array - initialize only once
 
   return (
     <div className="cesium-globe-container">

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Viewer } from 'cesium';
-import CesiumGlobe from '@/components/CesiumGlobe';
+import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
 import UploadZone from '@/components/UploadZone';
 import './App.css';
 
@@ -11,8 +11,10 @@ function App() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const viewerRef = useRef<Viewer | null>(null);
 
   const handleGlobeReady = (viewer: Viewer) => {
+    viewerRef.current = viewer;
     setGlobeReady(true);
     console.log('[App] CesiumGlobe ready', viewer);
   };
@@ -39,6 +41,15 @@ function App() {
         setIsUploading(false);
         setShowUploadZone(false);
         console.log('[App] Upload complete (simulated)');
+
+        // Fly to Rome (simulated building location) after upload completes
+        // TODO: In Task 3.4, fly to actual building coordinates from API response
+        if (viewerRef.current) {
+          setTimeout(() => {
+            flyToLocation(viewerRef.current!, 12.492333, 41.890222, 5000, 3);
+            console.log('[App] Flying to building location (Rome, Italy)');
+          }, 500);
+        }
       }
     }, 500);
   };
