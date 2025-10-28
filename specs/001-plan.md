@@ -18,7 +18,7 @@ This plan defines the technical implementation strategy for SPEC-001, the core M
 2. **Spatial Database**: PostgreSQL 15+ with PostGIS for WGS84 georeferencing
 3. **Async Processing**: Celery + Redis for IFC validation jobs
 4. **Direct Upload**: S3 presigned URLs to bypass server bandwidth
-5. **Client-Side 3D**: web-ifc (WebAssembly) in Web Worker for non-blocking parsing
+5. ~~**Client-Side 3D**: web-ifc (WebAssembly) in Web Worker for non-blocking parsing~~ **REVISED (AD-001)**: Server-side IFC processing only with IfcOpenShell (Vite 5.x WASM incompatibility)
 
 **Critical Path**: Database schema → Upload API → IFC processor → Frontend integration → E2E testing
 
@@ -34,9 +34,9 @@ This plan defines the technical implementation strategy for SPEC-001, the core M
 - **IFC Processor**: Python 3.11.7 (type hints via mypy)
 
 **Primary Dependencies**:
-- **Frontend**: CesiumJS 1.112, web-ifc 0.0.53, Zustand 4.4 (state mgmt)
-- **Backend**: Express 4.18 or Fastify 4.25, Prisma 5.7 (ORM), aws-sdk 3.x
-- **IFC Service**: FastAPI 0.108, IfcOpenShell 0.7.0, Celery 5.3.4, Redis 7.2
+- **Frontend**: CesiumJS 1.112, ~~web-ifc 0.0.53~~ (REMOVED - AD-001), Zustand 4.4 (state mgmt)
+- **Backend**: Express 4.18 or Fastify 4.25, ~~Prisma 5.7 (ORM)~~ (REPLACED with pg driver), aws-sdk 3.x
+- **IFC Service**: FastAPI 0.108, IfcOpenShell 0.8.3 (Python 3.13), Celery 5.3.4, Redis 7.2, ClamAV (malware scanning)
 
 **Storage**:
 - **Database**: PostgreSQL 15.5 + PostGIS 3.4.1 (WGS84 GEOGRAPHY columns)
@@ -376,10 +376,10 @@ IFC-OpenWorld/
 │   │   │   │   ├── CesiumGlobe.tsx      # 3D globe viewer
 │   │   │   │   ├── BuildingMarker.tsx   # Custom marker component
 │   │   │   │   └── MarkerClusterer.tsx  # Performance optimization
-│   │   │   ├── IFCViewer/
-│   │   │   │   ├── IFCViewer.tsx        # Three.js renderer
-│   │   │   │   ├── ifcWorker.ts         # Web Worker for web-ifc
-│   │   │   │   └── CameraControls.tsx   # Orbit, pan, zoom
+│   │   │   ├── BuildingPreview/         # REVISED (AD-001): Server-side data only
+│   │   │   │   ├── BuildingPreview.tsx  # Metadata modal (no 3D viewer)
+│   │   │   │   ├── PropertyGrid.tsx     # Display IFC properties
+│   │   │   │   └── LocationInfo.tsx     # Show coordinates/address
 │   │   │   └── InfoPanel/
 │   │   │       ├── InfoPanel.tsx        # Attribution display
 │   │   │       └── LicenseBadge.tsx     # CC-BY 4.0 visual
@@ -387,9 +387,6 @@ IFC-OpenWorld/
 │   │   │   ├── api/
 │   │   │   │   ├── uploadApi.ts         # Fetch wrapper for upload endpoints
 │   │   │   │   └── buildingsApi.ts      # Spatial query API
-│   │   │   └── ifc/
-│   │   │       ├── ifcParser.ts         # web-ifc integration
-│   │   │       └── geometryConverter.ts # IFC → Three.js mesh
 │   │   ├── store/
 │   │   │   ├── buildingsStore.ts        # Zustand store
 │   │   │   └── uploadStore.ts
@@ -502,42 +499,22 @@ IFC-OpenWorld/
 
 ---
 
-#### RT-002: web-ifc Performance in Web Worker (TypeScript)
+#### ~~RT-002: web-ifc Performance in Web Worker (TypeScript)~~ ❌ REMOVED (AD-001)
 
-**Question**: Can web-ifc parse 50MB IFC file in <3 seconds without blocking UI?
+**Status**: ❌ **BLOCKED** - web-ifc incompatible with Vite 5.x WASM loading ([T119 Analysis](../poc/POC-2-cesium-viewer/T119-RESULTS.md))
 
-**Approach**:
-1. Create Web Worker: `ifcWorker.ts`
-2. Load web-ifc WASM module
-3. Parse sample 50MB IFC (e.g., Duplex_A.ifc scaled up)
-4. Measure parsing time with `performance.now()`
-5. Verify main thread remains responsive (requestAnimationFrame callbacks fire at 60fps)
+**Original Question**: Can web-ifc parse 50MB IFC file in <3 seconds without blocking UI?
 
-**Code Prototype**:
-```typescript
-// ifcWorker.ts
-import { IfcAPI } from 'web-ifc';
+**POC Findings (2025-10-26)**:
+- After 4 fix attempts over 3 hours, web-ifc WASM module fails to load in Vite 5.x Web Workers
+- Issue traced to Rollup's module resolution for WASM files
+- No viable workaround without downgrading to Vite 4.x (incompatible with other dependencies)
 
-const ifcApi = new IfcAPI();
-await ifcApi.Init();
+**Architectural Decision**: All IFC parsing moved to server-side with IfcOpenShell (Python)
+- **Benefits**: More robust error handling, better security (untrusted files isolated), eliminates client-side dependency
+- **Trade-off**: No real-time client-side 3D preview (future: server-generated 3D Tiles or screenshots)
 
-self.onmessage = async (event) => {
-  const { ifcData } = event.data;
-  const startTime = performance.now();
-
-  const modelID = ifcApi.OpenModel(ifcData);
-  const geometry = ifcApi.LoadAllGeometry(modelID);
-
-  const parseTime = performance.now() - startTime;
-  self.postMessage({ geometry, parseTime });
-};
-```
-
-**Success Criteria**:
-- Parse time <3s for 50MB file
-- Main thread maintains 60fps during parsing (Chrome DevTools Performance tab)
-
-**Deliverable**: `research/002-web-ifc-worker/` folder with POC code + performance results
+**See**: [specs/001-research.md](./001-research.md#rt-003-web-ifc-browser-parsing) for complete analysis
 
 ---
 
@@ -1242,9 +1219,10 @@ paths:
 │                              │  └──────────────────┘ │ │
 │                              │                        │ │
 │                              │  ┌──────────────────┐ │ │
-│                              │  │ IFCViewer (Modal)│ │ │
-│                              │  │  ├── ifcWorker   │ │ │
-│                              │  │  └── CameraCtrl  │ │ │
+│                              │  │BuildingPreview   │ │ │
+│                              │  │     (Modal)      │ │ │
+│                              │  │  ├── PropertyGrid│ │ │
+│                              │  │  └── LocationInfo│ │ │
 │                              │  └──────────────────┘ │ │
 │                              └────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
@@ -1547,20 +1525,80 @@ export const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
 #### Milestone 3: Frontend Components (Week 3-4)
 
+⚠️ **IMPORTANT**: Based on POC validation (AD-001), web-ifc has been removed due to Vite 5.x incompatibility. All IFC parsing is server-side only.
+
+⚠️ **WINDOWS REQUIREMENT** (AD-002): Use Yarn instead of npm due to rollup installation bug (#4828).
+
 - **Task 3.1**: Set up React + Vite project with TypeScript
+  - ⚠️ Use `yarn install` on Windows (npm fails with rollup)
+  - Validate with POC-2 configuration (Vite 5.x + React 18.2)
+  - Setup ESLint + Prettier with strict TypeScript rules
+
 - **Task 3.2**: Configure CesiumJS with Ion token
+  - ✅ Validated in POC-2 (0.06s initialization, 50x faster than target)
+  - Use CesiumJS 1.112.0 or later
+  - Configure Ion access token from environment variable
+
 - **Task 3.3**: Implement UploadZone with react-dropzone
+  - Max file size: 100MB (configurable via env)
+  - Accepted formats: .ifc only
+  - Progress bar with cancel capability
+  - Client-side validation before upload
+
 - **Task 3.4**: Create Zustand stores (buildings, upload)
+  - buildings: List of uploaded buildings with coordinates
+  - upload: Upload progress, status, errors
+  - Use TypeScript strict mode for type safety
+
 - **Task 3.5**: Implement CesiumGlobe with marker rendering
-- **Task 3.6**: Implement IFCViewer with web-ifc Web Worker
+  - ✅ Validated in POC-2 (marker rendering works)
+  - Cluster nearby buildings (within 5km) for performance
+  - Fly-to animation on marker click
+  - Tooltip with building name and upload date
+
+- **Task 3.6**: ❌ ~~Implement IFCViewer with web-ifc Web Worker~~
+  - **MODIFIED (AD-001)**: Implement BuildingPreview with server-generated data
+  - **Architecture**: Server-side IFC processing only
+  - **Options**:
+    - Option A (MVP): Show metadata panel only (name, address, coordinates, floor count)
+    - Option B (Future): Display server-generated 3D Tiles in CesiumJS
+    - Option C (Future): Show server-generated screenshot preview
+  - **Rationale**: web-ifc removed due to Vite 5.x WASM incompatibility
+  - **See**: ADR-006 for detailed decision rationale
+
 - **Task 3.7**: Implement InfoPanel with CC-BY attribution
+  - Display building metadata (from backend API)
+  - Show upload date and uploader (if authenticated)
+  - CC-BY 4.0 license notice
+  - Share button (copy link to building)
+
 - **Task 3.8**: Add keyboard navigation (Tab, Enter, Arrow keys)
+  - Tab through interactive elements
+  - Enter to activate buttons
+  - Arrow keys for globe navigation
+  - Escape to close modals/panels
+
 - **Task 3.9**: Write React Testing Library unit tests
+  - UploadZone component tests
+  - Zustand store tests
+  - CesiumGlobe interaction tests
+  - Target: 80% coverage for components
+
 - **Task 3.10**: Write Playwright E2E tests (upload flow)
+  - Full upload workflow (select file → upload → see marker)
+  - Error handling (invalid file, file too large)
+  - Mobile viewport testing
+  - Accessibility audit (WCAG 2.1 AA)
 
 #### Milestone 4: Integration & Performance (Week 5)
 
-- **Task 4.1**: Docker Compose setup (PostgreSQL, Redis, ClamAV)
+- **Task 4.1**: ✅ Docker Compose setup (PostgreSQL, Redis, ClamAV, MinIO)
+  - ✅ COMPLETE: All services configured in backend/docker-compose.yml
+  - PostgreSQL 15.8 + PostGIS 3.4 (port 5433)
+  - Redis 7-alpine (port 6379)
+  - ClamAV latest (port 3310)
+  - MinIO S3-compatible (ports 9000, 9001)
+  - Health checks configured for all services
 - **Task 4.2**: GitHub Actions CI/CD pipeline (tests, Lighthouse)
 - **Task 4.3**: Nginx reverse proxy configuration (HTTPS)
 - **Task 4.4**: Prometheus + Grafana dashboards
@@ -2005,13 +2043,13 @@ jobs:
 
 | ID | Risk | Probability | Impact | Mitigation |
 |----|------|-------------|--------|------------|
-| TR-001 | **Prisma doesn't fully support PostGIS** | High | Medium | Use `Unsupported()` type + raw SQL for spatial queries. Document in ADR-003. Accept loss of type safety for spatial operations. |
-| TR-002 | **web-ifc crashes on malformed IFC** | High | High | Wrap in try-catch, fallback to server-side IfcOpenShell. Display user-friendly error: "IFC file appears corrupted. Try re-exporting from your BIM tool." |
+| TR-001 | ~~**Prisma doesn't fully support PostGIS**~~ ✅ RESOLVED | N/A | N/A | **RESOLVED (Milestone 1)**: Replaced Prisma with pg (node-postgres) driver for full PostGIS control. See ADR-005. |
+| TR-002 | ~~**web-ifc crashes on malformed IFC**~~ ✅ RESOLVED (AD-001) | N/A | N/A | **RESOLVED (2025-10-26)**: Client-side parsing removed. All IFC processing server-side with IfcOpenShell (robust error handling). |
 | TR-003 | **CesiumJS bundle size >5MB** | Medium | Medium | Code splitting: Load Cesium on-demand via dynamic import. Use Vite's `manualChunks` config. |
 | TR-004 | **S3 upload fails midway (network interruption)** | Medium | Low | Implement resumable uploads via S3 multipart upload API (future enhancement). For MVP: Show error, ask user to retry. |
 | TR-005 | **Celery worker crashes under load** | Low | High | Add health checks, auto-restart with Docker `restart: always`. Monitor queue depth with Prometheus alerts. |
-| TR-006 | **PostgreSQL connection pool exhaustion** | Low | High | Set `max_connections=100` in PostgreSQL, Prisma pool size=20. Add connection pool metrics to Grafana. |
-| TR-007 | **ClamAV virus scan too slow (>30s)** | Medium | Medium | Run scan asynchronously, don't block upload completion. Update status later. Add timeout (60s max). |
+| TR-006 | **PostgreSQL connection pool exhaustion** | Low | High | Set `max_connections=100` in PostgreSQL, pg pool size=20. Add connection pool metrics to Grafana. |
+| TR-007 | **ClamAV virus scan too slow (>30s)** | ✅ RESOLVED | N/A | **RESOLVED (Milestone 2)**: ClamAV scan runs asynchronously in Celery worker (typical scan <50ms). Graceful timeout at 60s. |
 
 ---
 
@@ -2335,8 +2373,8 @@ groups:
 | Language | TypeScript | 5.3.0 | Type safety |
 | Build Tool | Vite | 5.0.0 | Fast dev server + HMR |
 | 3D Globe | CesiumJS | 1.112.0 | Geospatial visualization |
-| IFC Parsing | web-ifc | 0.0.53 | Client-side IFC WebAssembly |
-| 3D Rendering | web-ifc-three | 0.0.124 | Three.js integration |
+| ~~IFC Parsing~~ | ~~web-ifc~~ | ~~0.0.53~~ | ~~Client-side IFC WebAssembly~~ **REMOVED (AD-001)** |
+| ~~3D Rendering~~ | ~~web-ifc-three~~ | ~~0.0.124~~ | ~~Three.js integration~~ **REMOVED (AD-001)** |
 | State Management | Zustand | 4.4.7 | Lightweight store |
 | HTTP Client | Fetch API | Native | API requests |
 | File Upload | react-dropzone | 14.2.3 | Drag-and-drop UI |
