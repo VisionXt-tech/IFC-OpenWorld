@@ -62,11 +62,28 @@ services:
     networks:
       - ifc-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: ifc-openworld-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ifc-network
+
 volumes:
   postgres_data:
     name: ifc-openworld-postgres-data
   minio_data:
     name: ifc-openworld-minio-data
+  redis_data:
+    name: ifc-openworld-redis-data
 
 networks:
   ifc-network:
