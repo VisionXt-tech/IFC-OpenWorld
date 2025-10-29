@@ -46,10 +46,10 @@ router.post('/request', async (req: Request, res: Response): Promise<void> => {
       throw new AppError(400, `Invalid content type. Allowed: ${allowedMimeTypes.join(', ')}`);
     }
 
-    // Generate unique S3 key
+    // Generate unique S3 key (without bucket name prefix)
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 15);
-    const s3Key = `ifc-raw/${timestamp}-${randomSuffix}-${fileName}`;
+    const s3Key = `${timestamp}-${randomSuffix}-${fileName}`;
 
     // Generate presigned URL
     const presignedUrl = await s3Service.generatePresignedUrl(s3Key, contentType, fileSize);
