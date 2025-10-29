@@ -10,7 +10,7 @@ export default defineConfig({
     cesium()
   ],
   server: {
-    port: 3000,
+    port: 5173, // Use Vite default port to match backend CORS config
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

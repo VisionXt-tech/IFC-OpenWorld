@@ -40,7 +40,8 @@ export async function requestUploadUrl(
 export async function uploadToS3(
   presignedUrl: string,
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  contentType?: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -71,9 +72,9 @@ export async function uploadToS3(
       reject(new Error('S3 upload cancelled'));
     });
 
-    // Start upload
+    // Start upload with correct content type
     xhr.open('PUT', presignedUrl);
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('Content-Type', contentType || file.type || 'application/x-step');
     xhr.send(file);
   });
 }
@@ -100,20 +101,25 @@ export async function uploadIFCFile(
   onProgress?: (progress: number) => void
 ): Promise<{ taskId: string; fileId: string }> {
   // Step 1: Request presigned URL
+  // Use application/x-step as default MIME type for IFC files (STEP format)
+  // Backend accepts: application/x-step, application/ifc, text/plain
+  const contentType = file.type || 'application/x-step';
+
   const { uploadUrl, fileId, expiresAt } = await requestUploadUrl({
     fileName: file.name,
     fileSize: file.size,
-    contentType: file.type || 'application/octet-stream',
+    contentType,
   });
 
   console.log('[UploadAPI] Presigned URL received:', {
     fileId,
     expiresAt,
     fileName: file.name,
+    contentType,
   });
 
-  // Step 2: Upload to S3
-  await uploadToS3(uploadUrl, file, onProgress);
+  // Step 2: Upload to S3 with same content type
+  await uploadToS3(uploadUrl, file, onProgress, contentType);
 
   console.log('[UploadAPI] S3 upload complete');
 
