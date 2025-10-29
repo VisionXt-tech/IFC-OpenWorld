@@ -23,6 +23,8 @@ export class S3Service {
         secretAccessKey: config.s3.secretAccessKey,
       },
       forcePathStyle: true, // Required for MinIO
+      // Disable automatic checksums to avoid CORS issues with x-amz-checksum-* headers
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     });
 
     logger.info('S3Service initialized', {
