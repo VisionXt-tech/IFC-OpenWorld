@@ -40,15 +40,15 @@ export interface UploadStatus {
 }
 
 export interface PresignedUrlResponse {
-  uploadUrl: string;
+  presignedUrl: string; // Backend sends presignedUrl, not uploadUrl
   fileId: string;
-  expiresAt: string;
+  s3Key: string;
+  expiresIn: number; // Backend sends expiresIn (seconds), not expiresAt (ISO date)
 }
 
 export interface UploadCompleteRequest {
   fileId: string;
-  fileName: string;
-  fileSize: number;
+  s3Key: string; // Backend expects s3Key, not fileName/fileSize
 }
 
 export interface ProcessingStatusResponse {

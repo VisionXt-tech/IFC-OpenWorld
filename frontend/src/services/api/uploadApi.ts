@@ -80,10 +80,17 @@ export async function uploadToS3(
 }
 
 /**
- * Step 3: Notify backend that upload is complete and start processing
+ * Step 3: Notify backend that upload is complete
+ * Returns upload status (backend does not yet trigger Celery processing)
  */
-export async function completeUpload(params: UploadCompleteRequest): Promise<{ taskId: string }> {
-  return apiClient.post<{ taskId: string }>('/upload/complete', params);
+export async function completeUpload(params: UploadCompleteRequest): Promise<{
+  success: boolean;
+  fileId: string;
+  fileName: string;
+  uploadStatus: string;
+  processingStatus: string;
+}> {
+  return apiClient.post('/upload/complete', params);
 }
 
 /**
@@ -105,7 +112,7 @@ export async function uploadIFCFile(
   // Backend accepts: application/x-step, application/ifc, text/plain
   const contentType = file.type || 'application/x-step';
 
-  const { uploadUrl, fileId, expiresAt } = await requestUploadUrl({
+  const { presignedUrl, fileId, s3Key, expiresIn } = await requestUploadUrl({
     fileName: file.name,
     fileSize: file.size,
     contentType,
@@ -113,24 +120,27 @@ export async function uploadIFCFile(
 
   console.log('[UploadAPI] Presigned URL received:', {
     fileId,
-    expiresAt,
+    s3Key,
+    expiresIn,
     fileName: file.name,
     contentType,
   });
 
   // Step 2: Upload to S3 with same content type
-  await uploadToS3(uploadUrl, file, onProgress, contentType);
+  await uploadToS3(presignedUrl, file, onProgress, contentType);
 
   console.log('[UploadAPI] S3 upload complete');
 
-  // Step 3: Notify backend
-  const { taskId } = await completeUpload({
+  // Step 3: Notify backend (send s3Key, not fileName/fileSize)
+  const response = await completeUpload({
     fileId,
-    fileName: file.name,
-    fileSize: file.size,
+    s3Key,
   });
 
-  console.log('[UploadAPI] Processing started:', { taskId });
+  console.log('[UploadAPI] Upload marked as complete:', response);
 
-  return { taskId, fileId };
+  // TODO (Milestone 4): Backend needs to trigger Celery task and return taskId
+  // For now, we just return the fileId as taskId (no actual processing happens)
+  // The uploadStore will skip polling since there's no real task to poll
+  return { taskId: fileId, fileId };
 }

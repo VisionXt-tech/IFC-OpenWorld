@@ -70,12 +70,13 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         }));
       });
 
-      // Upload complete, start processing
+      // Upload complete
+      // TODO (Milestone 4): When Celery processing is implemented, change status to 'processing' and poll
       set({
         taskId,
         fileId,
         uploadStatus: {
-          status: 'processing',
+          status: 'success', // Skip processing for now (no Celery backend yet)
           progress: 100,
           fileName: file.name,
           fileSize: file.size,
@@ -84,8 +85,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         },
       });
 
-      // Start polling processing status
-      get().pollProcessingStatus();
+      console.log('[UploadStore] Upload complete (processing not yet implemented)');
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Upload failed. Please try again.';

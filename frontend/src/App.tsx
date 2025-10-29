@@ -36,30 +36,36 @@ function App() {
     cancelUpload();
   };
 
-  // Watch for successful upload and fly to building location
+  // Watch for successful upload
+  // TODO (Milestone 4): When Celery processing returns coordinates, fly to building location
   useEffect(() => {
-    if (uploadStatus.status === 'success' && processingResult && viewerRef.current) {
-      const { latitude, longitude } = processingResult.coordinates;
+    if (uploadStatus.status === 'success') {
+      console.log('[App] Upload complete!', { fileId: uploadStatus.uploadedFileId });
 
-      console.log('[App] Processing complete, flying to building:', {
-        name: processingResult.metadata.name,
-        coordinates: { latitude, longitude },
-      });
+      // If we have processing result with coordinates, fly to building
+      if (processingResult && viewerRef.current) {
+        const { latitude, longitude } = processingResult.coordinates;
 
-      // Close upload panel
-      setShowUploadZone(false);
+        console.log('[App] Flying to building:', {
+          name: processingResult.metadata.name,
+          coordinates: { latitude, longitude },
+        });
 
-      // Fly to building location after a short delay
-      setTimeout(() => {
-        flyToLocation(viewerRef.current!, longitude, latitude, 5000, 3);
-      }, 500);
+        // Close upload panel
+        setShowUploadZone(false);
 
-      // Reset upload state after animation
+        // Fly to building location after a short delay
+        setTimeout(() => {
+          flyToLocation(viewerRef.current!, longitude, latitude, 5000, 3);
+        }, 500);
+      }
+
+      // Reset upload state after a short delay
       setTimeout(() => {
         resetUpload();
-      }, 4000);
+      }, 3000);
     }
-  }, [uploadStatus.status, processingResult, resetUpload]);
+  }, [uploadStatus.status, processingResult, uploadStatus.uploadedFileId, resetUpload]);
 
   if (error) {
     return (
