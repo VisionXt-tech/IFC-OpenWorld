@@ -1,17 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Viewer } from 'cesium';
 import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
 import UploadZone from '@/components/UploadZone';
+import { useUploadStore } from '@/store';
 import './App.css';
 
 function App() {
   const [globeReady, setGlobeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUploadZone, setShowUploadZone] = useState(true);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const viewerRef = useRef<Viewer | null>(null);
+
+  // Zustand store
+  const { uploadStatus, processingResult, startUpload, cancelUpload, resetUpload } =
+    useUploadStore();
 
   const handleGlobeReady = (viewer: Viewer) => {
     viewerRef.current = viewer;
@@ -24,41 +26,40 @@ function App() {
     console.error('[App] CesiumGlobe error:', err);
   };
 
-  const handleFileAccepted = (file: File) => {
+  const handleFileAccepted = async (file: File) => {
     console.log('[App] File accepted:', file.name);
-    setIsUploading(true);
-    setUploadError(null);
-
-    // TODO: Implement actual upload logic in Task 3.4 with Zustand store
-    // For now, simulate upload progress
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setUploadProgress(progress);
-
-      if (progress >= 100) {
-        clearInterval(interval);
-        setIsUploading(false);
-        setShowUploadZone(false);
-        console.log('[App] Upload complete (simulated)');
-
-        // Fly to Rome (simulated building location) after upload completes
-        // TODO: In Task 3.4, fly to actual building coordinates from API response
-        if (viewerRef.current) {
-          setTimeout(() => {
-            flyToLocation(viewerRef.current!, 12.492333, 41.890222, 5000, 3);
-            console.log('[App] Flying to building location (Rome, Italy)');
-          }, 500);
-        }
-      }
-    }, 500);
+    await startUpload(file);
   };
 
   const handleCancelUpload = () => {
     console.log('[App] Upload cancelled');
-    setIsUploading(false);
-    setUploadProgress(0);
+    cancelUpload();
   };
+
+  // Watch for successful upload and fly to building location
+  useEffect(() => {
+    if (uploadStatus.status === 'success' && processingResult && viewerRef.current) {
+      const { latitude, longitude } = processingResult.coordinates;
+
+      console.log('[App] Processing complete, flying to building:', {
+        name: processingResult.metadata.name,
+        coordinates: { latitude, longitude },
+      });
+
+      // Close upload panel
+      setShowUploadZone(false);
+
+      // Fly to building location after a short delay
+      setTimeout(() => {
+        flyToLocation(viewerRef.current!, longitude, latitude, 5000, 3);
+      }, 500);
+
+      // Reset upload state after animation
+      setTimeout(() => {
+        resetUpload();
+      }, 4000);
+    }
+  }, [uploadStatus.status, processingResult, resetUpload]);
 
   if (error) {
     return (
@@ -82,6 +83,8 @@ function App() {
     );
   }
 
+  const isUploading = uploadStatus.status === 'uploading' || uploadStatus.status === 'processing';
+
   return (
     <div className="app">
       <header className="app-header-overlay">
@@ -97,9 +100,9 @@ function App() {
         <div className="upload-panel-overlay">
           <UploadZone
             onFileAccepted={handleFileAccepted}
-            progress={uploadProgress}
+            progress={uploadStatus.progress}
             isUploading={isUploading}
-            error={uploadError}
+            error={uploadStatus.error}
             onCancel={handleCancelUpload}
           />
           <button
@@ -125,7 +128,7 @@ function App() {
       )}
 
       <footer className="app-footer-overlay">
-        <p>Milestone 3 - Task 3.3: UploadZone Component Complete</p>
+        <p>Milestone 3 - Task 3.4: Zustand Stores & API Integration Complete</p>
       </footer>
     </div>
   );
