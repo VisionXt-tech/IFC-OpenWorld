@@ -72,6 +72,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
 
       // Upload complete
       // TODO (Milestone 4): When Celery processing is implemented, change status to 'processing' and poll
+      // For now, use mock coordinates to test camera fly animation
       set({
         taskId,
         fileId,
@@ -83,9 +84,22 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           error: null,
           uploadedFileId: fileId,
         },
+        // Mock processing result for UI testing (Rome, Italy coordinates)
+        processingResult: {
+          buildingId: fileId,
+          coordinates: {
+            latitude: 41.9028,
+            longitude: 12.4964,
+          },
+          metadata: {
+            name: file.name.replace('.ifc', ''),
+            city: 'Rome',
+            country: 'Italy',
+          },
+        },
       });
 
-      console.log('[UploadStore] Upload complete (processing not yet implemented)');
+      console.log('[UploadStore] Upload complete with mock coordinates (processing not yet implemented)');
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Upload failed. Please try again.';
