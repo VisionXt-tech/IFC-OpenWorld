@@ -46,6 +46,40 @@ router.post('/request', async (req: Request, res: Response): Promise<void> => {
       throw new AppError(400, `Invalid content type. Allowed: ${allowedMimeTypes.join(', ')}`);
     }
 
+    // AUTO-CLEANUP: Delete all previous uploads (one-file-at-a-time mode for development)
+    logger.info('Cleaning up previous uploads before new upload');
+
+    // Get all existing files from database
+    const existingFilesResult = await pool.query(
+      `SELECT id, s3_key FROM ifc_files WHERE upload_status != 'deleted' ORDER BY created_at DESC`
+    );
+
+    const existingFiles = existingFilesResult.rows as Array<{ id: string; s3_key: string }>;
+
+    if (existingFiles.length > 0) {
+      logger.info(`Found ${existingFiles.length} existing file(s) to delete`);
+
+      // Mark all existing files as deleted in database
+      await pool.query(
+        `UPDATE ifc_files SET upload_status = 'deleted', updated_at = NOW() WHERE upload_status != 'deleted'`
+      );
+
+      // Delete all existing files from S3
+      for (const file of existingFiles) {
+        try {
+          await s3Service.deleteFile(file.s3_key);
+          logger.info(`Deleted file from S3: ${file.s3_key}`);
+        } catch (error) {
+          logger.warn(`Failed to delete file from S3: ${file.s3_key}`, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          // Continue even if S3 deletion fails
+        }
+      }
+
+      logger.info('Cleanup complete');
+    }
+
     // Generate unique S3 key (without bucket name prefix)
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 15);

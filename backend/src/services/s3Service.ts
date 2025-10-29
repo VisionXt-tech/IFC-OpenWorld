@@ -136,6 +136,35 @@ export class S3Service {
   }
 
   /**
+   * Delete a file from S3
+   * @param key - S3 object key
+   * @throws AppError if deletion fails
+   */
+  async deleteFile(key: string): Promise<void> {
+    try {
+      const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      await this.s3Client.send(command);
+
+      logger.info('File deleted from S3', {
+        key,
+        bucket: this.bucketName,
+      });
+    } catch (error) {
+      logger.error('Failed to delete file from S3', {
+        key,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new AppError(500, 'Failed to delete file from storage');
+    }
+  }
+
+  /**
    * Get public URL for uploaded file
    * @param key - S3 object key
    * @returns Public URL for the file
