@@ -71,11 +71,12 @@ export class S3Service {
       this.validateFileSize(fileSizeBytes);
 
       // Create PutObject command
+      // Do NOT include ContentLength in presigned URL - browser will set it automatically
+      // Including it causes AWS signature mismatch when browser sends the actual request
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: key,
         ContentType: contentType,
-        ContentLength: fileSizeBytes,
       });
 
       // Generate presigned URL (valid for 15 minutes)
