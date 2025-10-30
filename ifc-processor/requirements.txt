@@ -1,0 +1,37 @@
+# IFC Processor Service - Python Dependencies
+# Python 3.11.7+
+
+# IFC Processing
+ifcopenshell==0.7.0  # IFC file parsing and coordinate extraction
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0  # ASGI server
+
+# Task Queue
+celery[redis]==5.3.4  # Async task processing
+redis==5.0.1  # Redis client
+
+# Database
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+sqlalchemy==2.0.23  # ORM for database operations
+
+# AWS S3
+boto3==1.29.7  # S3 file operations
+
+# Validation & Parsing
+pydantic==2.5.2  # Data validation
+pydantic-settings==2.1.0  # Settings management
+
+# Security
+python-multipart==0.0.6  # File upload support
+
+# Logging
+python-json-logger==2.0.7  # Structured logging
+
+# Development
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1
+black==23.12.1  # Code formatting
+mypy==1.7.1  # Type checking
