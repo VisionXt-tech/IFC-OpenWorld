@@ -295,9 +295,11 @@ site/
 # Optional stylelint cache
 .stylelintcache
 
-# Session files
-docs/SESSION-SUMMARY-*.md
+# Session files (both root and docs/)
+SESSION-SUMMARY-*.md
+**/SESSION-SUMMARY-*.md
 docs/**/session-*.md
+**/session-*.md
 
 # Microbundle cache
 .rpt2_cache/
