@@ -24,7 +24,7 @@ pydantic==2.5.2  # Data validation
 pydantic-settings==2.1.0  # Settings management
 
 # Security
-python-multipart==0.0.6  # File upload support
+python-multipart==0.0.20  # File upload support
 
 # Logging
 python-json-logger==2.0.7  # Structured logging
