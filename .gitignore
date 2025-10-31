@@ -258,6 +258,10 @@ frontend/public/Cesium/
 coverage/
 .nyc_output/
 lcov.info
+coverage.xml
+
+# Lighthouse CI reports
+.lighthouseci/
 
 # ============================================
 # DOCUMENTATION BUILD
@@ -283,12 +287,17 @@ site/
 
 # TypeScript cache
 *.tsbuildinfo
+.tsbuildinfo
 
 # Optional eslint cache
 .eslintcache
 
 # Optional stylelint cache
 .stylelintcache
+
+# Session files
+docs/SESSION-SUMMARY-*.md
+docs/**/session-*.md
 
 # Microbundle cache
 .rpt2_cache/
@@ -308,6 +317,11 @@ site/
 # ============================================
 # PROJECT SPECIFIC
 # ============================================
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/cache/
+.claude/conversations/
 
 # Large test files (keep only minimal samples)
 poc/**/test_*.bin
