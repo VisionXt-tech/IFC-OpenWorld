@@ -69,10 +69,24 @@ export async function uploadToS3(
         responseURL: xhr.responseURL,
       });
 
-      if (xhr.status === 200) {
+      if (xhr.status === 200 || xhr.status === 204) {
+        console.log('[UploadAPI] Upload successful');
         resolve();
       } else {
-        reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+        // Try to get error message from response, but don't fail if responseText is unavailable
+        let errorMessage = `S3 upload failed: ${xhr.status} ${xhr.statusText}`;
+        try {
+          if (xhr.responseType === '' || xhr.responseType === 'text') {
+            const responseText = xhr.responseText;
+            if (responseText) {
+              errorMessage += ` - ${responseText}`;
+            }
+          }
+        } catch (e) {
+          // Ignore error reading responseText
+          console.warn('[UploadAPI] Could not read response text:', e);
+        }
+        reject(new Error(errorMessage));
       }
     });
 
@@ -104,7 +118,7 @@ export async function uploadToS3(
 
 /**
  * Step 3: Notify backend that upload is complete
- * Returns upload status (backend does not yet trigger Celery processing)
+ * Backend triggers Celery processing and returns taskId
  */
 export async function completeUpload(params: UploadCompleteRequest): Promise<{
   success: boolean;
@@ -112,6 +126,7 @@ export async function completeUpload(params: UploadCompleteRequest): Promise<{
   fileName: string;
   uploadStatus: string;
   processingStatus: string;
+  taskId: string;
 }> {
   return apiClient.post('/upload/complete', params);
 }
@@ -162,8 +177,6 @@ export async function uploadIFCFile(
 
   console.log('[UploadAPI] Upload marked as complete:', response);
 
-  // TODO (Milestone 4): Backend needs to trigger Celery task and return taskId
-  // For now, we just return the fileId as taskId (no actual processing happens)
-  // The uploadStore will skip polling since there's no real task to poll
-  return { taskId: fileId, fileId };
+  // Backend has triggered Celery task, return taskId for status polling
+  return { taskId: response.taskId, fileId };
 }

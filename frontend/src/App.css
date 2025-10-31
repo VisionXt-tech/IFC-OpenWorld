@@ -156,15 +156,15 @@
   }
 }
 
-/* Upload panel overlay */
+/* Upload panel overlay - reduced size */
 .upload-panel-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 2000;
-  width: 90%;
-  max-width: 600px;
+  width: 85%;
+  max-width: 480px; /* Reduced from 600px */
   animation: fadeIn 0.3s ease;
 }
 
@@ -244,6 +244,41 @@
   outline-offset: 3px;
 }
 
+/* Open manager button (floating action button) */
+.open-manager-button {
+  position: absolute;
+  top: 165px;
+  right: 20px;
+  z-index: 1000;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.open-manager-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.6);
+}
+
+.open-manager-button:active {
+  transform: translateY(0);
+}
+
+.open-manager-button:focus-visible {
+  outline: 3px solid #e74c3c;
+  outline-offset: 3px;
+}
+
 /* Light mode adjustments */
 @media (prefers-color-scheme: light) {
   .close-upload-button {
@@ -273,6 +308,13 @@
 
   .open-upload-button {
     top: 80px;
+    right: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .open-manager-button {
+    top: 135px;
     right: 10px;
     padding: 0.75rem 1rem;
     font-size: 0.9rem;

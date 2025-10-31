@@ -9,11 +9,12 @@ RUN apt-get update && apt-get install -y \
     g++ \
     libboost-all-dev \
     libhdf5-dev \
-    liboce-foundation-dev \
-    liboce-modeling-dev \
-    liboce-ocaf-dev \
-    liboce-visualization-dev \
-    liboce-ocaf-lite-dev \
+    libocct-foundation-dev \
+    libocct-modeling-data-dev \
+    libocct-modeling-algorithms-dev \
+    libocct-ocaf-dev \
+    libocct-data-exchange-dev \
+    libocct-visualization-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

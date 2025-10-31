@@ -3,8 +3,10 @@
 Open-source platform for uploading, geolocating, and visualizing IFC (Industry Foundation Classes) building models on a 3D globe.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Pipeline](https://github.com/USERNAME/IFC-OpenWorld/workflows/CI%20Pipeline/badge.svg)](https://github.com/USERNAME/IFC-OpenWorld/actions)
 [![Status](https://img.shields.io/badge/Status-POC%20Validated-green)]()
 [![Architecture](https://img.shields.io/badge/Architecture-Server--Side-blue)]()
+[![codecov](https://codecov.io/gh/USERNAME/IFC-OpenWorld/branch/main/graph/badge.svg)](https://codecov.io/gh/USERNAME/IFC-OpenWorld)
 
 ---
 

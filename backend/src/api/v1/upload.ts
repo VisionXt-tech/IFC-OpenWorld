@@ -8,6 +8,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../../db/pool.js';
 import { s3Service } from '../../services/s3Service.js';
+import { celeryService } from '../../services/celeryService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
 
@@ -182,14 +183,14 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
       throw new AppError(400, 'File not found in storage');
     }
 
-    // Update status to completed
+    // Update status to completed and start processing
     const updateResult = await pool.query(
       `UPDATE ifc_files
-       SET upload_status = $1, uploaded_at = $2, updated_at = NOW()
-       WHERE id = $3
+       SET upload_status = $1, uploaded_at = $2, processing_status = $3, updated_at = NOW()
+       WHERE id = $4
        RETURNING id, file_name as "fileName", file_size as "fileSize", s3_key as "s3Key",
                  upload_status as "uploadStatus", processing_status as "processingStatus"`,
-      ['completed', new Date(), fileId]
+      ['completed', new Date(), 'processing', fileId]
     );
     const updatedFile = updateResult.rows[0] as {
       id: string;
@@ -200,10 +201,18 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
       processingStatus: string;
     };
 
-    logger.info('Upload completed', {
+    logger.info('Upload completed, triggering IFC processing', {
       fileId,
       s3Key,
       fileName: updatedFile.fileName,
+    });
+
+    // Trigger Celery task for IFC processing
+    const taskId = await celeryService.triggerIFCProcessing(fileId, s3Key);
+
+    logger.info('IFC processing task queued', {
+      fileId,
+      taskId,
     });
 
     res.status(200).json({
@@ -212,6 +221,7 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
       fileName: updatedFile.fileName,
       uploadStatus: updatedFile.uploadStatus,
       processingStatus: updatedFile.processingStatus,
+      taskId, // Return task ID for status polling
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -228,6 +238,59 @@ router.post('/complete', async (req: Request, res: Response): Promise<void> => {
     }
 
     logger.error('Upload complete failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+/**
+ * GET /api/v1/upload/status/:taskId
+ * Get processing task status
+ */
+router.get('/status/:taskId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { taskId } = req.params;
+
+    if (!taskId) {
+      throw new AppError(400, 'Task ID is required');
+    }
+
+    // Get task status from Celery
+    const taskResult = await celeryService.getTaskStatus(taskId);
+
+    if (!taskResult) {
+      throw new AppError(404, 'Task not found');
+    }
+
+    logger.info('Retrieved task status', {
+      taskId,
+      status: taskResult.status,
+    });
+
+    // Extract error message - prefer error from result over traceback
+    let errorMessage: string | undefined;
+    if (taskResult.status === 'FAILURE') {
+      errorMessage = taskResult.traceback || undefined;
+    } else if (taskResult.result && typeof taskResult.result === 'object' && 'error' in taskResult.result) {
+      // Task returned successfully but with an error in the result
+      errorMessage = taskResult.result.error as string;
+    }
+
+    res.status(200).json({
+      taskId,
+      status: taskResult.status,
+      result: taskResult.result,
+      error: errorMessage,
+    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+
+    logger.error('Failed to get task status', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 

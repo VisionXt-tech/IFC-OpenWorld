@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import { config } from '@/config';
+import { useBuildingsStore } from '@/store';
 import './CesiumGlobe.css';
 
 /**
@@ -23,6 +24,11 @@ export interface CesiumGlobeProps {
    * Callback for errors during initialization
    */
   onError?: (error: Error) => void;
+  /**
+   * Callback when a building marker is clicked
+   * Provides the building ID for showing InfoPanel
+   */
+  onBuildingClick?: (buildingId: string) => void;
 }
 
 /**
@@ -49,10 +55,12 @@ export function flyToLocation(
 
 function CesiumGlobe({
   onReady,
-  onError
+  onError,
+  onBuildingClick
 }: CesiumGlobeProps) {
   const cesiumContainer = useRef<HTMLDivElement>(null);
   const viewer = useRef<Cesium.Viewer | null>(null);
+  const buildings = useBuildingsStore((state) => state.buildings);
 
   useEffect(() => {
     if (!cesiumContainer.current) return;
@@ -63,9 +71,8 @@ function CesiumGlobe({
       // Set Cesium Ion access token from environment
       if (config.cesium.ionToken) {
         Cesium.Ion.defaultAccessToken = config.cesium.ionToken;
-      } else {
-        console.warn('[CesiumGlobe] No Ion token provided. Using OpenStreetMap fallback.');
       }
+      // Note: If no Ion token is provided, OpenStreetMap imagery is used as fallback
 
       // Initialize Cesium Viewer
       const viewerInstance = new Cesium.Viewer(cesiumContainer.current, {
@@ -86,6 +93,9 @@ function CesiumGlobe({
         navigationHelpButton: true,
         baseLayerPicker: false,
         fullscreenButton: true,
+        // Disable default InfoBox and SelectionIndicator - we use custom InfoPanel
+        infoBox: false,
+        selectionIndicator: false,
         // Enable shadows for better 3D visualization
         shadows: true,
         // Enable terrain for realistic elevation
@@ -114,6 +124,19 @@ function CesiumGlobe({
         console.log(`[CesiumGlobe] Ion token: ${config.cesium.ionToken ? 'Configured' : 'Not set'}`);
       }
 
+      // Add click handler for building selection
+      if (onBuildingClick) {
+        viewerInstance.screenSpaceEventHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+          const pickedObject = viewerInstance.scene.pick(movement.position);
+          if (Cesium.defined(pickedObject) && pickedObject.id) {
+            const entity = pickedObject.id as Cesium.Entity;
+            if (entity.id) {
+              onBuildingClick(entity.id);
+            }
+          }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      }
+
       // Call onReady callback
       onReady?.(viewerInstance);
 
@@ -131,6 +154,46 @@ function CesiumGlobe({
       }
     };
   }, []); // Empty dependency array - initialize only once
+
+  // Add building markers when buildings data changes
+  useEffect(() => {
+    if (!viewer.current || buildings.length === 0) return;
+
+    console.log(`[CesiumGlobe] Adding ${buildings.length} buildings to map`);
+
+    // Clear existing entities
+    viewer.current.entities.removeAll();
+
+    // Add each building as a marker
+    buildings.forEach((buildingFeature) => {
+      const { geometry, properties } = buildingFeature;
+      const [longitude, latitude] = geometry.coordinates;
+
+      viewer.current!.entities.add({
+        id: buildingFeature.id,
+        name: properties.name,
+        position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+        point: {
+          pixelSize: 15,
+          color: Cesium.Color.RED,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 2,
+        },
+        label: {
+          text: properties.name,
+          font: '14px sans-serif',
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 2,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -20),
+        },
+      });
+    });
+
+    console.log(`[CesiumGlobe] Added ${buildings.length} markers`);
+  }, [buildings]);
 
   return (
     <div className="cesium-globe-container">

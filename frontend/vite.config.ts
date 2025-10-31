@@ -35,7 +35,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'cesium': ['cesium'],
           'react-vendor': ['react', 'react-dom']
         }
       }

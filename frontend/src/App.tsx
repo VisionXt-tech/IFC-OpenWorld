@@ -2,18 +2,23 @@ import { useState, useRef, useEffect } from 'react';
 import type { Viewer } from 'cesium';
 import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
 import UploadZone from '@/components/UploadZone';
-import { useUploadStore } from '@/store';
+import BuildingsManager from '@/components/BuildingsManager';
+import InfoPanel from '@/components/InfoPanel';
+import { useUploadStore, useBuildingsStore } from '@/store';
 import './App.css';
 
 function App() {
   const [globeReady, setGlobeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showUploadZone, setShowUploadZone] = useState(true);
+  const [showUploadZone, setShowUploadZone] = useState(false); // Start closed to allow free navigation
+  const [showBuildingsManager, setShowBuildingsManager] = useState(false);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const viewerRef = useRef<Viewer | null>(null);
 
-  // Zustand store
+  // Zustand stores
   const { uploadStatus, processingResult, startUpload, cancelUpload, resetUpload } =
     useUploadStore();
+  const { buildings, fetchBuildings } = useBuildingsStore();
 
   const handleGlobeReady = (viewer: Viewer) => {
     viewerRef.current = viewer;
@@ -36,14 +41,62 @@ function App() {
     cancelUpload();
   };
 
+  const handleBuildingClick = (buildingId: string) => {
+    console.log('[App] Building clicked:', buildingId);
+    setSelectedBuildingId(buildingId);
+  };
+
+  const handleCloseInfoPanel = () => {
+    setSelectedBuildingId(null);
+  };
+
+  // Find the selected building from the store
+  const selectedBuilding = selectedBuildingId
+    ? buildings.find((b) => b.id === selectedBuildingId) || null
+    : null;
+
+  // Load buildings when globe is ready
+  useEffect(() => {
+    if (globeReady) {
+      console.log('[App] Globe ready, fetching buildings...');
+      fetchBuildings();
+    }
+  }, [globeReady, fetchBuildings]);
+
+  // Keyboard navigation: Escape to close panels
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Close upload zone if open
+        if (showUploadZone) {
+          setShowUploadZone(false);
+        }
+        // Close buildings manager if open
+        if (showBuildingsManager) {
+          setShowBuildingsManager(false);
+        }
+        // Close info panel if open
+        if (selectedBuildingId) {
+          setSelectedBuildingId(null);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showUploadZone, showBuildingsManager, selectedBuildingId]);
+
   // Watch for successful upload
-  // TODO (Milestone 4): When Celery processing returns coordinates, fly to building location
   useEffect(() => {
     if (uploadStatus.status === 'success') {
       console.log('[App] Upload complete!', { fileId: uploadStatus.uploadedFileId });
 
+      // Reload buildings from database to show the new marker
+      console.log('[App] Reloading buildings from database...');
+      fetchBuildings();
+
       // If we have processing result with coordinates, fly to building
-      if (processingResult && viewerRef.current) {
+      if (processingResult && processingResult.status === 'completed' && viewerRef.current) {
         const { latitude, longitude } = processingResult.coordinates;
 
         console.log('[App] Flying to building:', {
@@ -65,7 +118,7 @@ function App() {
         resetUpload();
       }, 3000);
     }
-  }, [uploadStatus.status, processingResult, uploadStatus.uploadedFileId, resetUpload]);
+  }, [uploadStatus.status, processingResult, uploadStatus.uploadedFileId, resetUpload, fetchBuildings]);
 
   if (error) {
     return (
@@ -100,7 +153,11 @@ function App() {
         </p>
       </header>
 
-      <CesiumGlobe onReady={handleGlobeReady} onError={handleGlobeError} />
+      <CesiumGlobe
+        onReady={handleGlobeReady}
+        onError={handleGlobeError}
+        onBuildingClick={handleBuildingClick}
+      />
 
       {showUploadZone && (
         <div className="upload-panel-overlay">
@@ -110,6 +167,7 @@ function App() {
             isUploading={isUploading}
             error={uploadStatus.error}
             onCancel={handleCancelUpload}
+            onReset={resetUpload}
           />
           <button
             className="close-upload-button"
@@ -133,8 +191,27 @@ function App() {
         </button>
       )}
 
+      {!showUploadZone && (
+        <button
+          className="open-manager-button"
+          onClick={() => setShowBuildingsManager(true)}
+          aria-label="Open buildings manager"
+          type="button"
+        >
+          🏗️ Manage Buildings
+        </button>
+      )}
+
+      {showBuildingsManager && (
+        <BuildingsManager onClose={() => setShowBuildingsManager(false)} />
+      )}
+
+      {selectedBuilding && (
+        <InfoPanel building={selectedBuilding} onClose={handleCloseInfoPanel} />
+      )}
+
       <footer className="app-footer-overlay">
-        <p>Milestone 3 - Task 3.4: Zustand Stores & API Integration Complete</p>
+        <p>Milestone 3 - Task 3.8: Keyboard Navigation Complete</p>
       </footer>
     </div>
   );

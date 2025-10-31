@@ -70,36 +70,24 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         }));
       });
 
-      // Upload complete
-      // TODO (Milestone 4): When Celery processing is implemented, change status to 'processing' and poll
-      // For now, use mock coordinates to test camera fly animation
+      // Upload complete, start processing
       set({
         taskId,
         fileId,
         uploadStatus: {
-          status: 'success', // Skip processing for now (no Celery backend yet)
+          status: 'processing',
           progress: 100,
           fileName: file.name,
           fileSize: file.size,
           error: null,
           uploadedFileId: fileId,
         },
-        // Mock processing result for UI testing (Rome, Italy coordinates)
-        processingResult: {
-          buildingId: fileId,
-          coordinates: {
-            latitude: 41.9028,
-            longitude: 12.4964,
-          },
-          metadata: {
-            name: file.name.replace('.ifc', ''),
-            city: 'Rome',
-            country: 'Italy',
-          },
-        },
       });
 
-      console.log('[UploadStore] Upload complete with mock coordinates (processing not yet implemented)');
+      console.log('[UploadStore] Upload complete, starting IFC processing', { taskId, fileId });
+
+      // Start polling for processing status
+      get().pollProcessingStatus();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Upload failed. Please try again.';
@@ -135,17 +123,52 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
     try {
       const statusResponse = await getProcessingStatus(taskId);
 
-      if (statusResponse.status === 'completed') {
-        set({
-          processingResult: statusResponse.result || null,
-          uploadStatus: {
-            ...get().uploadStatus,
-            status: 'success',
-          },
-        });
+      console.log('[UploadStore] Task status:', statusResponse);
 
-        console.log('[UploadStore] Processing complete:', statusResponse.result);
-      } else if (statusResponse.status === 'failed') {
+      if (statusResponse.status === 'SUCCESS') {
+        // Processing complete - but check if result contains an error
+        const result = statusResponse.result;
+
+        // Check if the task returned an error (status: 'failed' in result)
+        if (result && typeof result === 'object' && 'status' in result && result.status === 'failed') {
+          // Task completed but processing failed (e.g., missing coordinates)
+          const errorMessage = 'error' in result && typeof result.error === 'string'
+            ? result.error
+            : 'Processing failed';
+
+          set({
+            uploadStatus: {
+              ...get().uploadStatus,
+              status: 'error',
+              error: errorMessage,
+            },
+          });
+
+          console.error('[UploadStore] Processing failed:', errorMessage);
+        } else if (result && typeof result === 'object' && 'status' in result && result.status === 'completed') {
+          // Task completed successfully with coordinates
+          set({
+            processingResult: result as Extract<ProcessingStatusResponse['result'], { status: 'completed' }>,
+            uploadStatus: {
+              ...get().uploadStatus,
+              status: 'success',
+            },
+          });
+
+          console.log('[UploadStore] Processing complete:', result);
+        } else {
+          // Unexpected result format
+          set({
+            uploadStatus: {
+              ...get().uploadStatus,
+              status: 'error',
+              error: 'Processing completed but returned unexpected result format',
+            },
+          });
+
+          console.error('[UploadStore] Unexpected result format:', result);
+        }
+      } else if (statusResponse.status === 'FAILURE') {
         set({
           uploadStatus: {
             ...get().uploadStatus,
@@ -156,7 +179,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
 
         console.error('[UploadStore] Processing failed:', statusResponse.error);
       } else {
-        // Still processing, poll again in 2 seconds
+        // Still processing (PENDING, STARTED, RETRY), poll again in 2 seconds
         setTimeout(() => {
           get().pollProcessingStatus();
         }, 2000);

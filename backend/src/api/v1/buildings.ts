@@ -16,7 +16,7 @@ const router = Router();
 const bboxQuerySchema = z.object({
   bbox: z.string().regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, {
     message: 'bbox must be in format: minLon,minLat,maxLon,maxLat',
-  }),
+  }).optional(),
   limit: z.coerce.number().int().min(1).max(1000).optional().default(100),
   cursor: z.string().uuid().optional(),
 });
@@ -28,29 +28,32 @@ const buildingIdSchema = z.object({
 
 /**
  * GET /api/v1/buildings?bbox=minLon,minLat,maxLon,maxLat&limit=100&cursor=uuid
- * Query buildings within a bounding box
+ * Query buildings within a bounding box (or all buildings if bbox not provided)
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate query parameters
     const { bbox: bboxString, limit, cursor } = bboxQuerySchema.parse(req.query);
 
-    // Parse bounding box coordinates
-    const coords = bboxString.split(',').map(Number);
-    const [minLon, minLat, maxLon, maxLat] = coords;
+    // Parse bounding box coordinates if provided
+    let bbox: { minLon: number; minLat: number; maxLon: number; maxLat: number } | undefined;
 
-    const bbox = {
-      minLon: minLon!,
-      minLat: minLat!,
-      maxLon: maxLon!,
-      maxLat: maxLat!,
-    };
+    if (bboxString) {
+      const coords = bboxString.split(',').map(Number);
+      const [minLon, minLat, maxLon, maxLat] = coords;
+      bbox = {
+        minLon: minLon!,
+        minLat: minLat!,
+        maxLon: maxLon!,
+        maxLat: maxLat!,
+      };
+    }
 
-    // Query buildings
+    // Query buildings (with or without bbox)
     const featureCollection = await buildingService.queryByBoundingBox(bbox, limit, cursor);
 
     logger.info('Buildings query successful', {
-      bbox,
+      bbox: bbox || 'all',
       limit,
       cursor,
       resultCount: featureCollection.features.length,
@@ -131,6 +134,43 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
 
     logger.error('Building retrieval failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+/**
+ * DELETE /api/v1/buildings/:id
+ * Delete building by UUID (including associated IFC file)
+ */
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Validate path parameter
+    const { id } = buildingIdSchema.parse(req.params);
+
+    // Delete building (cascade deletes IFC file)
+    await buildingService.deleteById(id);
+
+    logger.info('Building deleted', { id });
+
+    res.status(204).send();
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        error: 'Validation Error',
+        details: error.errors,
+      });
+      return;
+    }
+
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+
+    logger.error('Building deletion failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 

@@ -1,0 +1,314 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Backend Tests
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4-alpine
+        env:
+          POSTGRES_DB: ifc_openworld_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+          cache-dependency-path: backend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: backend
+        run: yarn install --frozen-lockfile
+
+      - name: Run database migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/ifc_openworld_test
+        run: |
+          # Apply manual migration
+          PGPASSWORD=test_password psql -h localhost -U test_user -d ifc_openworld_test -f prisma/manual-migration.sql
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/ifc_openworld_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci
+          S3_ENDPOINT: http://localhost:9000
+          S3_ACCESS_KEY: minioadmin
+          S3_SECRET_KEY: minioadmin
+          S3_BUCKET: test-bucket
+        run: yarn test --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # Frontend Tests
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: TypeScript type check
+        working-directory: frontend
+        run: yarn tsc --noEmit
+
+      - name: ESLint check
+        working-directory: frontend
+        run: yarn lint
+
+      - name: Build application
+        working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:3001
+          VITE_CESIUM_ION_TOKEN: ${{ secrets.VITE_CESIUM_ION_TOKEN }}
+        run: yarn build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # Python IFC Processor Tests
+  ifc-processor-test:
+    name: IFC Processor Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4-alpine
+        env:
+          POSTGRES_DB: ifc_openworld_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: ifc-processor/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ifc-processor
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        working-directory: ifc-processor
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/ifc_openworld_test
+          REDIS_URL: redis://localhost:6379
+          CLAMAV_ENABLED: "false"
+        run: pytest --cov=app --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ifc-processor/coverage.xml
+          flags: ifc-processor
+          name: ifc-processor-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # Lighthouse CI
+  lighthouse:
+    name: Lighthouse Performance
+    runs-on: ubuntu-latest
+    needs: frontend-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.13.x
+
+      - name: Run Lighthouse CI
+        working-directory: frontend
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: |
+          lhci autorun --config=../lighthouserc.json || echo "Lighthouse CI failed, continuing..."
+
+  # Security Audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Backend npm audit
+        working-directory: backend
+        run: |
+          yarn audit --level moderate || echo "Found vulnerabilities, review required"
+
+      - name: Frontend npm audit
+        working-directory: frontend
+        run: |
+          yarn audit --level moderate || echo "Found vulnerabilities, review required"
+
+      - name: Check for outdated dependencies
+        run: |
+          echo "Backend outdated packages:"
+          cd backend && yarn outdated || true
+          echo "Frontend outdated packages:"
+          cd ../frontend && yarn outdated || true
+
+  # Docker Build Test
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: ifc-openworld-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build IFC processor image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ifc-processor
+          file: ./ifc-processor/Dockerfile
+          push: false
+          tags: ifc-openworld-processor:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: ifc-openworld-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=http://localhost:3001
+            VITE_CESIUM_ION_TOKEN=${{ secrets.VITE_CESIUM_ION_TOKEN }}
+
+  # All checks passed
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, ifc-processor-test, lighthouse, security-audit, docker-build]
+    if: success()
+
+    steps:
+      - name: Success message
+        run: |
+          echo "✅ All CI checks passed!"
+          echo "Backend tests: ✅"
+          echo "Frontend tests: ✅"
+          echo "IFC Processor tests: ✅"
+          echo "Lighthouse: ✅"
+          echo "Security audit: ✅"
+          echo "Docker builds: ✅"

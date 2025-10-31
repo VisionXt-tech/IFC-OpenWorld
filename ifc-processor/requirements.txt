@@ -2,7 +2,7 @@
 # Python 3.11.7+
 
 # IFC Processing
-ifcopenshell==0.7.0  # IFC file parsing and coordinate extraction
+ifcopenshell==0.8.3  # IFC file parsing and coordinate extraction
 
 # Web Framework
 fastapi==0.104.1
@@ -10,7 +10,7 @@ uvicorn[standard]==0.24.0  # ASGI server
 
 # Task Queue
 celery[redis]==5.3.4  # Async task processing
-redis==5.0.1  # Redis client
+redis==4.6.0  # Redis client (compatible with celery 5.3.4)
 
 # Database
 psycopg2-binary==2.9.9  # PostgreSQL adapter

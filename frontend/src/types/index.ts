@@ -52,10 +52,10 @@ export interface UploadCompleteRequest {
 }
 
 export interface ProcessingStatusResponse {
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  progress: number;
+  taskId: string;
+  status: 'PENDING' | 'STARTED' | 'SUCCESS' | 'FAILURE' | 'RETRY';
   result?: {
-    buildingId: string;
+    status: 'completed';
     coordinates: {
       latitude: number;
       longitude: number;
@@ -68,6 +68,10 @@ export interface ProcessingStatusResponse {
       height?: number;
       floorCount?: number;
     };
+  } | {
+    status: 'failed';
+    file_id: string;
+    error: string;
   };
   error?: string;
 }

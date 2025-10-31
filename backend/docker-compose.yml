@@ -96,6 +96,32 @@ services:
     networks:
       - ifc-network
 
+  ifc-processor:
+    build:
+      context: ../ifc-processor
+      dockerfile: Dockerfile
+    container_name: ifc-openworld-processor
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    environment:
+      DATABASE_URL: "postgresql://ifc_user:ifc_password@postgres:5432/ifc_openworld"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      S3_ENDPOINT: "http://minio:9000"
+      S3_BUCKET: "ifc-raw"
+      S3_ACCESS_KEY_ID: "minioadmin"
+      S3_SECRET_ACCESS_KEY: "minioadmin"
+      S3_REGION: "us-east-1"
+      LOG_LEVEL: "INFO"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../ifc-processor/app:/app/app  # Hot reload for development
+    networks:
+      - ifc-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     name: ifc-openworld-postgres-data

@@ -20,6 +20,7 @@ model IFCFile {
   s3Key             String      @map("s3_key")
   uploadStatus      UploadStatus @default(pending) @map("upload_status")
   processingStatus  ProcessingStatus @default(not_started) @map("processing_status")
+  errorMessage      String?     @map("error_message") @db.Text
   uploadedAt        DateTime?   @map("uploaded_at")
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")

@@ -93,55 +93,85 @@ export class BuildingService {
 
   /**
    * Query buildings within a bounding box using PostGIS ST_Within
-   * @param bbox - Bounding box coordinates
+   * If bbox is not provided, returns all buildings
+   * @param bbox - Optional bounding box coordinates
    * @param limit - Maximum number of results (default: 100, max: 1000)
    * @param cursor - Cursor for pagination (building ID)
    * @returns GeoJSON FeatureCollection
    */
   async queryByBoundingBox(
-    bbox: BoundingBox,
+    bbox?: BoundingBox,
     limit: number = 100,
     cursor?: string
   ): Promise<FeatureCollection> {
     try {
       // Validate inputs
-      this.validateBoundingBox(bbox);
+      if (bbox) {
+        this.validateBoundingBox(bbox);
+      }
 
       if (limit < 1 || limit > 1000) {
         throw new AppError(400, 'Limit must be between 1 and 1000');
       }
 
-      const { minLon, minLat, maxLon, maxLat } = bbox;
+      // Build query based on whether bbox is provided
+      let query: string;
+      let queryParams: (string | number)[];
 
-      // Build PostGIS ST_Within query
-      // ST_Within(location, ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326))
-      const whereClause = cursor ? `AND id > '${cursor}'` : '';
+      const whereClause = cursor ? `AND id > $${bbox ? 5 : 1}` : '';
 
-      const query = `
-        SELECT
-          id,
-          name,
-          address,
-          city,
-          country,
-          height,
-          floor_count as "floorCount",
-          ifc_file_id as "ifcFileId",
-          created_at as "createdAt",
-          updated_at as "updatedAt",
-          ST_X(location::geometry) as longitude,
-          ST_Y(location::geometry) as latitude
-        FROM buildings
-        WHERE ST_Within(
-          location::geometry,
-          ST_MakeEnvelope($1, $2, $3, $4, 4326)
-        )
-        ${whereClause}
-        ORDER BY id
-        LIMIT $5
-      `;
+      if (bbox) {
+        const { minLon, minLat, maxLon, maxLat } = bbox;
+        // Query with bounding box filter
+        query = `
+          SELECT
+            id,
+            name,
+            address,
+            city,
+            country,
+            height,
+            floor_count as "floorCount",
+            ifc_file_id as "ifcFileId",
+            created_at as "createdAt",
+            updated_at as "updatedAt",
+            ST_X(location::geometry) as longitude,
+            ST_Y(location::geometry) as latitude
+          FROM buildings
+          WHERE ST_Within(
+            location::geometry,
+            ST_MakeEnvelope($1, $2, $3, $4, 4326)
+          )
+          ${whereClause}
+          ORDER BY id
+          LIMIT $${cursor ? 6 : 5}
+        `;
+        queryParams = cursor ? [minLon, minLat, maxLon, maxLat, cursor, limit] : [minLon, minLat, maxLon, maxLat, limit];
+      } else {
+        // Query all buildings
+        query = `
+          SELECT
+            id,
+            name,
+            address,
+            city,
+            country,
+            height,
+            floor_count as "floorCount",
+            ifc_file_id as "ifcFileId",
+            created_at as "createdAt",
+            updated_at as "updatedAt",
+            ST_X(location::geometry) as longitude,
+            ST_Y(location::geometry) as latitude
+          FROM buildings
+          ${cursor ? 'WHERE id > $1' : ''}
+          ORDER BY id
+          LIMIT $${cursor ? 2 : 1}
+        `;
+        queryParams = cursor ? [cursor, limit] : [limit];
+      }
 
-      const result = await pool.query(query, [minLon, minLat, maxLon, maxLat, limit]);
+      const result = await pool.query(query, queryParams);
       const buildings = result.rows as Array<
         Building & {
           longitude: number;
@@ -170,19 +200,22 @@ export class BuildingService {
         },
       }));
 
-      logger.info('Buildings queried by bounding box', {
-        bbox,
+      logger.info('Buildings queried', {
+        bbox: bbox || 'all',
         count: features.length,
         limit,
         cursor,
       });
+
+      // Create a default bbox for metadata if not provided
+      const metadataBbox = bbox || { minLon: -180, minLat: -90, maxLon: 180, maxLat: 90 };
 
       return {
         type: 'FeatureCollection',
         features,
         metadata: {
           count: features.length,
-          bbox,
+          bbox: metadataBbox,
         },
       };
     } catch (error) {
@@ -190,8 +223,8 @@ export class BuildingService {
         throw error;
       }
 
-      logger.error('Failed to query buildings by bounding box', {
-        bbox,
+      logger.error('Failed to query buildings', {
+        bbox: bbox || 'all',
         error: error instanceof Error ? error.message : 'Unknown error',
       });
 
@@ -271,6 +304,41 @@ export class BuildingService {
       });
 
       throw new AppError(500, 'Failed to retrieve building');
+    }
+  }
+
+  /**
+   * Delete building by ID (cascade deletes associated IFC file)
+   * @param id - Building UUID
+   * @throws AppError if building not found or deletion fails
+   */
+  async deleteById(id: string): Promise<void> {
+    try {
+      // Delete building (IFC file will be cascade deleted due to ON DELETE CASCADE)
+      const query = `
+        DELETE FROM buildings
+        WHERE id = $1
+        RETURNING id
+      `;
+
+      const result = await pool.query(query, [id]);
+
+      if (result.rowCount === 0) {
+        throw new AppError(404, 'Building not found');
+      }
+
+      logger.info('Building deleted', { id });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      logger.error('Failed to delete building', {
+        id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new AppError(500, 'Failed to delete building');
     }
   }
 

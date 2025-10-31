@@ -85,7 +85,6 @@ def update_processing_result(
                 height,
                 floor_count,
                 location,
-                upload_status,
                 created_at,
                 updated_at
             ) VALUES (
@@ -97,7 +96,6 @@ def update_processing_result(
                 %s,
                 %s,
                 ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-                'active',
                 NOW(),
                 NOW()
             )

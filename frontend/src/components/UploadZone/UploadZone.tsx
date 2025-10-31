@@ -37,6 +37,10 @@ export interface UploadZoneProps {
    * Callback to cancel upload
    */
   onCancel?: () => void;
+  /**
+   * Callback to reset/clear error state
+   */
+  onReset?: () => void;
 }
 
 function UploadZone({
@@ -44,7 +48,8 @@ function UploadZone({
   progress = 0,
   isUploading = false,
   error = null,
-  onCancel
+  onCancel,
+  onReset
 }: UploadZoneProps) {
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -138,12 +143,14 @@ function UploadZone({
         ) : displayError ? (
           <div className="upload-error">
             <div className="error-icon">❌</div>
-            <h3>Upload Error</h3>
+            <h3>Upload Failed</h3>
             <p className="error-message">{displayError}</p>
             <button
               className="retry-button"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setValidationError(null);
+                onReset?.();
               }}
               type="button"
             >
