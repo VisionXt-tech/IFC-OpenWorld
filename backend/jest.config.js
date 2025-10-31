@@ -20,9 +20,6 @@ const config = {
       statements: 85,
     },
   },
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
@@ -41,6 +38,15 @@ const config = {
   verbose: true,
   testTimeout: 10000,
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  // Transform ESM modules from node_modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid|@redis)/)',
+  ],
+  // Mock problematic modules
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^uuid$': '<rootDir>/tests/mocks/uuid.ts',
+  },
 };
 
 export default config;

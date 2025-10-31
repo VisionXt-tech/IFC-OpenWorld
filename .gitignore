@@ -266,6 +266,7 @@ coverage.xml
 # ============================================
 # DOCUMENTATION BUILD
 # ============================================
+docs/
 docs/_build/
 docs/.doctrees/
 site/
