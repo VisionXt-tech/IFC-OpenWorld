@@ -136,7 +136,11 @@ export class BuildingService {
             created_at as "createdAt",
             updated_at as "updatedAt",
             ST_X(location::geometry) as longitude,
-            ST_Y(location::geometry) as latitude
+            ST_Y(location::geometry) as latitude,
+            model_url as "modelUrl",
+            model_size_mb as "modelSizeMb",
+            model_format as "modelFormat",
+            model_generated_at as "modelGeneratedAt"
           FROM buildings
           WHERE ST_Within(
             location::geometry,
@@ -162,7 +166,11 @@ export class BuildingService {
             created_at as "createdAt",
             updated_at as "updatedAt",
             ST_X(location::geometry) as longitude,
-            ST_Y(location::geometry) as latitude
+            ST_Y(location::geometry) as latitude,
+            model_url as "modelUrl",
+            model_size_mb as "modelSizeMb",
+            model_format as "modelFormat",
+            model_generated_at as "modelGeneratedAt"
           FROM buildings
           ${cursor ? 'WHERE id > $1' : ''}
           ORDER BY id

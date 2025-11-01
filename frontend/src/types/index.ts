@@ -12,6 +12,11 @@ export interface Building {
   updatedAt: string;
   longitude: number;
   latitude: number;
+  // 3D Model fields
+  modelUrl?: string | null;
+  modelSizeMb?: number | null;
+  modelFormat?: string | null;
+  modelGeneratedAt?: string | null;
 }
 
 export interface BuildingFeature {
