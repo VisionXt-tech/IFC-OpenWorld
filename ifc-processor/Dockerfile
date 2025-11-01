@@ -3,7 +3,7 @@
 
 FROM python:3.11-slim
 
-# Install system dependencies for IfcOpenShell
+# Install system dependencies for IfcOpenShell and IfcConvert
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -15,7 +15,11 @@ RUN apt-get update && apt-get install -y \
     libocct-ocaf-dev \
     libocct-data-exchange-dev \
     libocct-visualization-dev \
+    wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install IfcConvert (bundled with IfcOpenShell)
+# IfcConvert is included in ifcopenshell package
 
 # Set working directory
 WORKDIR /app
