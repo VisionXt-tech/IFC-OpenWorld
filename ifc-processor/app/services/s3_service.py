@@ -71,6 +71,46 @@ def download_file_from_s3(s3_key: str, local_path: str) -> str:
         raise S3Error(f"Unexpected error: {str(e)}")
 
 
+def upload_file_to_s3(local_path: str, s3_key: str, bucket: str = None) -> str:
+    """
+    Upload file from local filesystem to S3.
+
+    Args:
+        local_path: Local filesystem path of file to upload
+        s3_key: S3 object key (destination path in bucket)
+        bucket: Optional bucket name (defaults to S3_BUCKET env var)
+
+    Returns:
+        S3 key of uploaded file
+
+    Raises:
+        S3Error: If upload fails
+    """
+    if bucket is None:
+        bucket = os.getenv('S3_BUCKET', 'ifc-raw')
+
+    s3_client = get_s3_client()
+
+    try:
+        logger.info(f"Uploading {local_path} to S3 bucket {bucket}/{s3_key}")
+
+        s3_client.upload_file(local_path, bucket, s3_key)
+
+        logger.info(f"Uploaded to {bucket}/{s3_key}")
+        return s3_key
+
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        logger.error(f"S3 upload error ({error_code}): {e}")
+        raise S3Error(f"Failed to upload to S3: {str(e)}")
+    except FileNotFoundError:
+        logger.error(f"Local file not found: {local_path}")
+        raise S3Error(f"Local file not found: {local_path}")
+    except Exception as e:
+        logger.error(f"Unexpected error uploading to S3: {e}")
+        raise S3Error(f"Unexpected error: {str(e)}")
+
+
 def file_exists_in_s3(s3_key: str) -> bool:
     """
     Check if file exists in S3.

@@ -39,7 +39,10 @@ def update_processing_result(
     file_id: str,
     latitude: float,
     longitude: float,
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any],
+    model_url: str = None,
+    model_size_mb: float = None,
+    model_format: str = None
 ) -> None:
     """
     Update ifc_files table with processing results and create building record.
@@ -49,6 +52,9 @@ def update_processing_result(
         latitude: Building latitude
         longitude: Building longitude
         metadata: Building metadata (name, address, height, etc.)
+        model_url: Optional URL to 3D model (glTF/glB)
+        model_size_mb: Optional size of 3D model in MB
+        model_format: Optional format of 3D model (glb, gltf)
 
     Raises:
         DatabaseError: If update fails
@@ -85,6 +91,10 @@ def update_processing_result(
                 height,
                 floor_count,
                 location,
+                model_url,
+                model_size_mb,
+                model_format,
+                model_generated_at,
                 created_at,
                 updated_at
             ) VALUES (
@@ -96,6 +106,10 @@ def update_processing_result(
                 %s,
                 %s,
                 ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
+                %s,
+                %s,
+                %s,
+                CASE WHEN %s IS NOT NULL THEN NOW() ELSE NULL END,
                 NOW(),
                 NOW()
             )
@@ -111,6 +125,10 @@ def update_processing_result(
                 metadata.get('floorCount'),
                 longitude,  # PostGIS uses (longitude, latitude) order
                 latitude,
+                model_url,
+                model_size_mb,
+                model_format,
+                model_url,  # For CASE WHEN check in model_generated_at
             )
         )
 

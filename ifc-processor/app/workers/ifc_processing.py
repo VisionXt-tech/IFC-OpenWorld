@@ -8,9 +8,10 @@ import tempfile
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
 
-from app.services.s3_service import download_file_from_s3, S3Error
+from app.services.s3_service import download_file_from_s3, upload_file_to_s3, S3Error
 from app.services.ifc_parser import extract_coordinates_from_ifc, extract_metadata_from_ifc, IFCParserError
 from app.services.database import update_processing_result, mark_processing_failed, DatabaseError
+from app.services.gltf_converter import gltf_converter
 
 # Configure logging
 logger = get_task_logger(__name__)
@@ -81,10 +82,59 @@ def process_ifc_file(self, file_id: str, s3_key: str):
         metadata = extract_metadata_from_ifc(local_file_path)
         logger.info(f"Extracted metadata: {metadata}")
 
-        # Step 4: Update database
-        logger.info("Step 4: Updating database with results")
+        # Step 4: Convert IFC to glTF
+        logger.info("Step 4: Converting IFC to glTF/glB")
 
-        update_processing_result(file_id, latitude, longitude, metadata)
+        model_url = None
+        model_size_mb = None
+        model_format = None
+
+        try:
+            success, gltf_path, error = gltf_converter.convert_ifc_to_gltf(local_file_path)
+
+            if success and gltf_path:
+                logger.info(f"glTF conversion successful: {gltf_path}")
+
+                # Get model metadata
+                model_metadata = gltf_converter.get_model_metadata(gltf_path)
+                model_size_mb = model_metadata.get('file_size_mb')
+                model_format = model_metadata.get('format', 'glb')
+
+                # Upload glTF to S3 with key: models/{file_id}.glb
+                model_s3_key = f"models/{file_id}.{model_format}"
+                upload_file_to_s3(gltf_path, model_s3_key)
+
+                # Generate model URL (adjust based on your S3 configuration)
+                # For MinIO: http://localhost:9000/bucket/models/{file_id}.glb
+                # For production S3: https://s3.amazonaws.com/bucket/models/{file_id}.glb
+                model_url = f"/models/{file_id}.{model_format}"  # Relative URL for now
+
+                logger.info(f"3D model uploaded to S3: {model_s3_key}")
+
+                # Clean up local glTF file
+                try:
+                    os.unlink(gltf_path)
+                except:
+                    pass
+            else:
+                logger.warning(f"glTF conversion failed: {error}")
+                logger.warning("Continuing without 3D model")
+        except Exception as e:
+            logger.error(f"glTF conversion error: {str(e)}")
+            logger.warning("Continuing without 3D model")
+
+        # Step 5: Update database
+        logger.info("Step 5: Updating database with results")
+
+        update_processing_result(
+            file_id,
+            latitude,
+            longitude,
+            metadata,
+            model_url=model_url,
+            model_size_mb=model_size_mb,
+            model_format=model_format
+        )
         logger.info("Database updated successfully")
 
         # Success!
