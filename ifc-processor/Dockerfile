@@ -1,7 +1,7 @@
 # IFC Processor Service Dockerfile
 # Python 3.11 with IfcOpenShell
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Install system dependencies for IfcOpenShell and IfcConvert
 RUN apt-get update && apt-get install -y \
