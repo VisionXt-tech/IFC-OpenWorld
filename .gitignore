@@ -219,7 +219,6 @@ tramp
 *.bak
 *.orig
 *.rej
-*.lock
 
 # ============================================
 # IFC FILES (Uploads - Don't commit user data)
@@ -266,7 +265,6 @@ coverage.xml
 # ============================================
 # DOCUMENTATION BUILD
 # ============================================
-docs/
 docs/_build/
 docs/.doctrees/
 site/
