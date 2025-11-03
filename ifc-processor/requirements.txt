@@ -30,7 +30,7 @@ python-multipart==0.0.6  # File upload support
 python-json-logger==2.0.7  # Structured logging
 
 # Development
-pytest==7.4.3
+pytest==8.4.2
 pytest-cov==4.1.0
 pytest-asyncio==0.21.1
 black==23.12.1  # Code formatting
