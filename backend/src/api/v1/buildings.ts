@@ -6,6 +6,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { createHash } from 'crypto';
 import { buildingService } from '../../services/buildingService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
@@ -86,8 +87,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     // Cache for 5 minutes (buildings don't change frequently)
     res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
 
-    // Generate ETag based on response content
-    const etag = `W/"${Buffer.from(JSON.stringify(response)).toString('base64').substring(0, 27)}"`;
+    // PERFORMANCE: Generate ETag based on response content using SHA-256 hash
+    // Uses first 16 characters of hash to reduce header size while maintaining uniqueness
+    const hash = createHash('sha256')
+      .update(JSON.stringify(response))
+      .digest('hex')
+      .substring(0, 16);
+    const etag = `W/"${hash}"`;
     res.setHeader('ETag', etag);
 
     // Check if client has cached version

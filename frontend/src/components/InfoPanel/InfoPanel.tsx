@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { type BuildingFeature } from '@/types';
 import { sanitizeBuildingName } from '@/utils/sanitize';
+import { useToast } from '@/contexts/ToastContext';
 import './InfoPanel.css';
 
 export interface InfoPanelProps {
@@ -21,6 +22,9 @@ export interface InfoPanelProps {
  * @see specs/001-plan.md Task 3.7, 3.8
  */
 function InfoPanel({ building, onClose }: InfoPanelProps) {
+  // UX IMPROVEMENT: Use Toast notifications instead of alert()
+  const { success, error: showError } = useToast();
+
   // BUGFIX: Move useEffect before early return to comply with React Rules of Hooks
   // Hooks must be called in the same order on every render
   useEffect(() => {
@@ -59,9 +63,10 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      alert('Link copied to clipboard!');
+      success('Link copied to clipboard!', 3000);
     } catch (err) {
       console.error('Failed to copy link:', err);
+      showError('Failed to copy link');
     }
   };
 

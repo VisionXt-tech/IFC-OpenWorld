@@ -127,14 +127,17 @@ function CesiumGlobe({
       }
 
       // Add click handler for building selection
+      // BUGFIX: Store handler reference for proper cleanup
       if (onBuildingClick) {
         viewerInstance.screenSpaceEventHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
           const pickedObject = viewerInstance.scene.pick(movement.position);
-          if (Cesium.defined(pickedObject) && pickedObject.id) {
-            const entity = pickedObject.id as Cesium.Entity;
-            if (entity.id) {
-              onBuildingClick(entity.id);
-            }
+          // BUGFIX: Type-safe checking instead of unsafe cast
+          if (
+            Cesium.defined(pickedObject) &&
+            pickedObject.id instanceof Cesium.Entity &&
+            typeof pickedObject.id.id === 'string'
+          ) {
+            onBuildingClick(pickedObject.id.id);
           }
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
       }
@@ -150,7 +153,20 @@ function CesiumGlobe({
 
     // Cleanup on unmount
     return () => {
+      // BUGFIX: Clear marker map to prevent memory leak
+      markerMap.current.clear();
+
+      // BUGFIX: Remove click event handler to prevent memory leak
       if (viewer.current) {
+        try {
+          viewer.current.screenSpaceEventHandler.removeInputAction(
+            Cesium.ScreenSpaceEventType.LEFT_CLICK
+          );
+        } catch (error) {
+          // Ignore error if handler was never set
+          console.debug('[CesiumGlobe] Event handler cleanup (already removed or not set)');
+        }
+
         viewer.current.destroy();
         viewer.current = null;
       }

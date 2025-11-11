@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { Viewer } from 'cesium';
 import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
 import UploadZone from '@/components/UploadZone';
@@ -20,35 +20,41 @@ function App() {
     useUploadStore();
   const { buildings, fetchBuildings } = useBuildingsStore();
 
-  const handleGlobeReady = (viewer: Viewer) => {
+  // PERFORMANCE: Memoize callbacks to prevent unnecessary re-renders
+  const handleGlobeReady = useCallback((viewer: Viewer) => {
     viewerRef.current = viewer;
     setGlobeReady(true);
     console.log('[App] CesiumGlobe ready', viewer);
-  };
+  }, []);
 
-  const handleGlobeError = (err: Error) => {
+  const handleGlobeError = useCallback((err: Error) => {
     setError(err.message);
     console.error('[App] CesiumGlobe error:', err);
-  };
+  }, []);
 
-  const handleFileAccepted = async (file: File) => {
+  const handleFileAccepted = useCallback(async (file: File) => {
     console.log('[App] File accepted:', file.name);
-    await startUpload(file);
-  };
+    try {
+      await startUpload(file);
+    } catch (error) {
+      console.error('[App] Upload failed:', error);
+      setError(error instanceof Error ? error.message : 'Upload failed');
+    }
+  }, [startUpload]);
 
-  const handleCancelUpload = () => {
+  const handleCancelUpload = useCallback(() => {
     console.log('[App] Upload cancelled');
     cancelUpload();
-  };
+  }, [cancelUpload]);
 
-  const handleBuildingClick = (buildingId: string) => {
+  const handleBuildingClick = useCallback((buildingId: string) => {
     console.log('[App] Building clicked:', buildingId);
     setSelectedBuildingId(buildingId);
-  };
+  }, []);
 
-  const handleCloseInfoPanel = () => {
+  const handleCloseInfoPanel = useCallback(() => {
     setSelectedBuildingId(null);
-  };
+  }, []);
 
   // Find the selected building from the store
   const selectedBuilding = selectedBuildingId
@@ -56,12 +62,18 @@ function App() {
     : null;
 
   // Load buildings when globe is ready
+  // BUGFIX: Handle promise properly and use stable reference
   useEffect(() => {
     if (globeReady) {
       console.log('[App] Globe ready, fetching buildings...');
-      fetchBuildings();
+      void fetchBuildings().catch((error) => {
+        console.error('[App] Failed to fetch buildings:', error);
+        setError('Failed to load buildings');
+      });
     }
-  }, [globeReady, fetchBuildings]);
+    // fetchBuildings is from Zustand store and is stable, no need in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globeReady]);
 
   // Keyboard navigation: Escape to close panels
   useEffect(() => {
@@ -87,13 +99,17 @@ function App() {
   }, [showUploadZone, showBuildingsManager, selectedBuildingId]);
 
   // Watch for successful upload
+  // BUGFIX: Handle promises properly
   useEffect(() => {
     if (uploadStatus.status === 'success') {
       console.log('[App] Upload complete!', { fileId: uploadStatus.uploadedFileId });
 
       // Reload buildings from database to show the new marker
       console.log('[App] Reloading buildings from database...');
-      fetchBuildings();
+      void fetchBuildings().catch((error) => {
+        console.error('[App] Failed to reload buildings:', error);
+        setError('Failed to reload buildings after upload');
+      });
 
       // If we have processing result with coordinates, fly to building
       if (processingResult && processingResult.status === 'completed' && viewerRef.current) {
@@ -107,9 +123,12 @@ function App() {
         // Close upload panel
         setShowUploadZone(false);
 
+        // BUGFIX: Type-safe null check before flying
         // Fly to building location after a short delay
         setTimeout(() => {
-          flyToLocation(viewerRef.current!, longitude, latitude, 5000, 3);
+          if (viewerRef.current) {
+            flyToLocation(viewerRef.current, longitude, latitude, 5000, 3);
+          }
         }, 500);
       }
 

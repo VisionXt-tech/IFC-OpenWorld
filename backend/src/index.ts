@@ -10,6 +10,8 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
+import { pool } from './db/pool.js';
+import { redisService } from './services/redisService.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { globalRateLimiter, uploadRateLimiter } from './middleware/rateLimit.js';
 import { csrfErrorHandler } from './middleware/csrf.js';
@@ -95,12 +97,38 @@ const server = app.listen(config.server.port, config.server.host, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
+// BUGFIX: Handle both SIGTERM and SIGINT (Ctrl+C) for proper cleanup
+async function gracefulShutdown(signal: string): Promise<void> {
+  logger.info(`${signal} received, shutting down gracefully`);
+
+  server.close(async () => {
+    try {
+      // Close database pool
+      await pool.end();
+      logger.info('Database pool closed');
+
+      // Close Redis connection if enabled
+      await redisService.disconnect();
+      logger.info('Redis connection closed');
+
+      logger.info('Server closed successfully');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during graceful shutdown', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      process.exit(1);
+    }
   });
-});
+
+  // Force shutdown after 10 seconds if graceful shutdown fails
+  setTimeout(() => {
+    logger.error('Forcefully shutting down after timeout');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
 
 export { app };
