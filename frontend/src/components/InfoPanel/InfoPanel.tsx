@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { type BuildingFeature } from '@/types';
+import { sanitizeBuildingName } from '@/utils/sanitize';
 import './InfoPanel.css';
 
 export interface InfoPanelProps {
@@ -20,6 +21,22 @@ export interface InfoPanelProps {
  * @see specs/001-plan.md Task 3.7, 3.8
  */
 function InfoPanel({ building, onClose }: InfoPanelProps) {
+  // BUGFIX: Move useEffect before early return to comply with React Rules of Hooks
+  // Hooks must be called in the same order on every render
+  useEffect(() => {
+    // Only attach listener if building is present
+    if (!building) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [building, onClose]);
+
   if (!building) return null;
 
   const { geometry, properties } = building;
@@ -48,24 +65,12 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
     }
   };
 
-  // Keyboard navigation: Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
   return (
     <div className="info-panel-overlay" onClick={onClose}>
       <div className="info-panel" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="info-panel-header">
-          <h2>{properties.name || 'Building'}</h2>
+          <h2>{sanitizeBuildingName(properties.name)}</h2>
           <button
             className="close-button"
             onClick={onClose}

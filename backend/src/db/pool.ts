@@ -33,10 +33,10 @@ process.on('SIGTERM', async () => {
  * Test database connection
  */
 export async function testConnection(): Promise<boolean> {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    client.release();
     logger.info('Database connection successful', {
       timestamp: result.rows[0].now,
     });
@@ -46,6 +46,11 @@ export async function testConnection(): Promise<boolean> {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     return false;
+  } finally {
+    // BUGFIX: Ensure client is released even if query fails to prevent connection leaks
+    if (client) {
+      client.release();
+    }
   }
 }
 

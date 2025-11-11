@@ -153,10 +153,28 @@ export class RedisService {
     }
 
     try {
-      const keys = await this.client.keys(pattern);
+      // PERFORMANCE FIX: Use SCAN instead of KEYS to avoid blocking Redis server
+      // KEYS command blocks the server and can cause performance issues with large datasets
+      const stream = this.client.scanStream({
+        match: pattern,
+        count: 100, // Process 100 keys at a time
+      });
+
+      const keys: string[] = [];
+
+      // Collect all matching keys using async iteration
+      for await (const keyBatch of stream) {
+        keys.push(...keyBatch);
+      }
 
       if (keys.length > 0) {
-        await this.client.del(...keys);
+        // Delete in batches of 1000 to avoid exceeding Redis command limits
+        const batchSize = 1000;
+        for (let i = 0; i < keys.length; i += batchSize) {
+          const batch = keys.slice(i, i + batchSize);
+          await this.client.del(...batch);
+        }
+
         logger.info('Cache pattern deleted', {
           pattern,
           keysDeleted: keys.length,

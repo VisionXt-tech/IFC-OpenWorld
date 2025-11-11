@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBuildingsStore } from '@/store';
+import { sanitizeBuildingName } from '@/utils/sanitize';
 import './BuildingsManager.css';
 
 /**
@@ -155,7 +156,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="building-info">
-                  <div className="building-name">{building.properties.name}</div>
+                  <div className="building-name">{sanitizeBuildingName(building.properties.name)}</div>
                   <div className="building-details">
                     <span>📍 {building.geometry.coordinates[1].toFixed(4)}°, {building.geometry.coordinates[0].toFixed(4)}°</span>
                     {building.properties.height && (

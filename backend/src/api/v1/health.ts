@@ -5,35 +5,32 @@
 
 import { Router, type Request, type Response } from 'express';
 import { pool } from '../../db/pool.js';
-import { config } from '../../config/index.js';
 
 const router = Router();
 
 router.get('/', async (_req: Request, res: Response) => {
   try {
-    // Check database connection
-    const result = await pool.query('SELECT NOW() as now, version() as version');
-    const dbInfo = result.rows[0] as { now: Date; version: string };
+    // Check database connection (simple query without exposing version info)
+    // SECURITY FIX: Removed database version from public endpoint to prevent information disclosure
+    await pool.query('SELECT 1');
 
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      environment: config.server.env,
-      database: {
-        status: 'connected',
-        timestamp: dbInfo.now,
-        version: dbInfo.version.split(' ')[0] + ' ' + dbInfo.version.split(' ')[1],
+      services: {
+        database: 'connected',
+        api: 'operational',
       },
     });
   } catch (error) {
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      environment: config.server.env,
-      database: {
-        status: 'disconnected',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      services: {
+        database: 'disconnected',
+        api: 'operational',
       },
+      message: 'Service degraded - database connection failed',
     });
   }
 });
