@@ -80,7 +80,16 @@ export async function query<T = unknown>(
   }
 }
 
+// SECURITY: Extract database name safely without exposing credentials
+let databaseName = 'unknown';
+try {
+  const dbUrl = new URL(config.database.url);
+  databaseName = dbUrl.pathname.slice(1).split('?')[0] || 'unknown';
+} catch {
+  // If URL parsing fails, don't log anything
+}
+
 logger.info('Database pool initialized', {
   max: poolConfig.max,
-  database: config.database.url.split('@')[1]?.split('/')[1]?.split('?')[0],
+  database: databaseName,
 });

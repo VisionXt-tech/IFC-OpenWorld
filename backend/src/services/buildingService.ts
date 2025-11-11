@@ -294,11 +294,13 @@ export class BuildingService {
       const result = await pool.query(query, [id]);
       const buildings = result.rows as BuildingWithCoords[];
 
-      if (buildings.length === 0) {
+      // TYPE SAFETY: Explicit check instead of non-null assertion
+      if (buildings.length === 0 || !buildings[0]) {
         throw new AppError(404, 'Building not found');
       }
 
-      const building = buildings[0]!;
+      // TypeScript now knows buildings[0] exists with explicit check
+      const building = buildings[0];
 
       logger.info('Building retrieved by ID', { id });
 
@@ -351,7 +353,8 @@ export class BuildingService {
 
       const result = await pool.query(query, [id]);
 
-      if (result.rowCount === 0) {
+      // TYPE SAFETY: rowCount can be null according to pg types
+      if (!result.rowCount || result.rowCount === 0) {
         throw new AppError(404, 'Building not found');
       }
 

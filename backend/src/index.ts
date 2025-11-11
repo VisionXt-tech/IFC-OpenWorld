@@ -3,6 +3,8 @@
  * Entry point for Express application
  */
 
+// IMPORTANT: Import express-async-errors first to handle async errors properly
+import 'express-async-errors';
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,10 +24,17 @@ import { csrfRouter } from './api/v1/csrf.js';
 
 const app: Express = express();
 
+// SECURITY: Trust first proxy for correct X-Forwarded-* headers
+// Required when behind reverse proxy (nginx, load balancer, etc.)
+if (config.server.env === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // HTTPS enforcement in production (VULN-007)
 if (config.server.env === 'production') {
   app.use((req, res, next) => {
-    if (!req.secure && req.headers['x-forwarded-proto'] !== 'https') {
+    // req.secure now properly checks X-Forwarded-Proto thanks to trust proxy
+    if (!req.secure) {
       return res.redirect(301, `https://${req.headers.host}${req.url}`);
     }
     next();

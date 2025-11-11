@@ -57,8 +57,9 @@ function App() {
   }, []);
 
   // Find the selected building from the store
+  // CODE QUALITY: Use nullish coalescing (??) instead of || for better handling of falsy values
   const selectedBuilding = selectedBuildingId
-    ? buildings.find((b) => b.id === selectedBuildingId) || null
+    ? buildings.find((b) => b.id === selectedBuildingId) ?? null
     : null;
 
   // Load buildings when globe is ready
