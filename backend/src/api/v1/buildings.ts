@@ -6,9 +6,11 @@
 
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { createHash } from 'crypto';
 import { buildingService } from '../../services/buildingService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { validateCsrfToken } from '../../middleware/csrf.js';
 
 const router = Router();
 
@@ -81,6 +83,25 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // OPT-002: Add caching headers for performance
+    // Cache for 5 minutes (buildings don't change frequently)
+    res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+
+    // PERFORMANCE: Generate ETag based on response content using SHA-256 hash
+    // Uses first 16 characters of hash to reduce header size while maintaining uniqueness
+    const hash = createHash('sha256')
+      .update(JSON.stringify(response))
+      .digest('hex')
+      .substring(0, 16);
+    const etag = `W/"${hash}"`;
+    res.setHeader('ETag', etag);
+
+    // Check if client has cached version
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end(); // Not Modified
+      return;
+    }
+
     res.status(200).json(response);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -145,7 +166,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * DELETE /api/v1/buildings/:id
  * Delete building by UUID (including associated IFC file)
  */
-router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate path parameter
     const { id } = buildingIdSchema.parse(req.params);

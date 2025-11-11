@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useBuildingsStore } from '@/store';
+import { sanitizeBuildingName } from '@/utils/sanitize';
+import { useToast } from '@/contexts/ToastContext';
 import './BuildingsManager.css';
 
 /**
@@ -21,6 +23,7 @@ export interface BuildingsManagerProps {
 
 function BuildingsManager({ onClose }: BuildingsManagerProps) {
   const { buildings, fetchBuildings } = useBuildingsStore();
+  const { success, error: showError, warning } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,27 +73,63 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     try {
       const idsToDelete = Array.from(selectedIds);
 
-      // Delete each building via API
+      // SECURITY: Fetch CSRF token for DELETE requests
+      let csrfToken: string | null = null;
+      try {
+        const tokenResponse = await fetch('/api/v1/csrf-token');
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          csrfToken = tokenData.csrfToken;
+        }
+      } catch (err) {
+        console.error('[BuildingsManager] Failed to fetch CSRF token:', err);
+      }
+
+      // IMPROVEMENT: Use Promise.allSettled to handle partial failures
       const deletePromises = idsToDelete.map(async (id) => {
         const response = await fetch(`/api/v1/buildings/${id}`, {
           method: 'DELETE',
+          headers: {
+            ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
+          },
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to delete building ${id}`);
+          throw new Error(`Failed to delete building ${id}: ${response.statusText}`);
         }
+        return id;
       });
 
-      await Promise.all(deletePromises);
+      const results = await Promise.allSettled(deletePromises);
+
+      // Analyze results
+      const succeeded = results.filter(r => r.status === 'fulfilled');
+      const failed = results.filter(r => r.status === 'rejected');
 
       // Refresh buildings list
-      await fetchBuildings();
+      await fetchBuildings().catch((err) => {
+        console.error('[BuildingsManager] Failed to refresh buildings:', err);
+      });
       setSelectedIds(new Set());
 
-      console.log(`[BuildingsManager] Deleted ${idsToDelete.length} building(s)`);
+      // IMPROVEMENT: Detailed feedback based on results
+      if (failed.length === 0) {
+        success(`Successfully deleted ${succeeded.length} building(s)`, 4000);
+        console.log(`[BuildingsManager] Deleted ${succeeded.length} building(s)`);
+      } else if (succeeded.length === 0) {
+        showError(`Failed to delete all ${failed.length} building(s)`);
+        console.error('[BuildingsManager] All deletions failed');
+      } else {
+        warning(
+          `Deleted ${succeeded.length} building(s), but ${failed.length} failed. Please try again.`,
+          6000
+        );
+        console.warn(`[BuildingsManager] Partial success: ${succeeded.length} succeeded, ${failed.length} failed`);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete buildings';
       setError(errorMessage);
+      showError(errorMessage);
       console.error('[BuildingsManager] Delete error:', err);
     } finally {
       setDeleting(false);
@@ -155,7 +194,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="building-info">
-                  <div className="building-name">{building.properties.name}</div>
+                  <div className="building-name">{sanitizeBuildingName(building.properties.name)}</div>
                   <div className="building-details">
                     <span>📍 {building.geometry.coordinates[1].toFixed(4)}°, {building.geometry.coordinates[0].toFixed(4)}°</span>
                     {building.properties.height && (
