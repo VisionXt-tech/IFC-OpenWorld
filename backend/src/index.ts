@@ -6,6 +6,7 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -16,13 +17,54 @@ import { buildingsRouter } from './api/v1/buildings.js';
 
 const app: Express = express();
 
-// Security middleware
-app.use(helmet());
+// HTTPS enforcement in production (VULN-007)
+if (config.server.env === 'production') {
+  app.use((req, res, next) => {
+    if (!req.secure && req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
+// Security middleware with enhanced CSP (VULN-006)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://cesium.com', 'https://cdn.jsdelivr.net'],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Required for CesiumJS
+        imgSrc: ["'self'", 'https:', 'data:', 'blob:'],
+        connectSrc: ["'self'", config.cors.origin],
+        workerSrc: ["'self'", 'blob:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+      },
+    },
+  })
+);
+
+// Compression middleware (OPT-001) - 40-60% size reduction
+app.use(
+  compression({
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+    level: 6, // Balance between speed and compression
+    threshold: 1024, // Only compress responses > 1KB
+  })
+);
+
 app.use(globalRateLimiter);
 app.use(
   cors({
-    origin: config.cors.origin,
+    origin: config.cors.origin.split(',').map((o) => o.trim()),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 

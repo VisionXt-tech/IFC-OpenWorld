@@ -81,6 +81,20 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // OPT-002: Add caching headers for performance
+    // Cache for 5 minutes (buildings don't change frequently)
+    res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+
+    // Generate ETag based on response content
+    const etag = `W/"${Buffer.from(JSON.stringify(response)).toString('base64').substring(0, 27)}"`;
+    res.setHeader('ETag', etag);
+
+    // Check if client has cached version
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end(); // Not Modified
+      return;
+    }
+
     res.status(200).json(response);
   } catch (error) {
     if (error instanceof z.ZodError) {
