@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { buildingService } from '../../services/buildingService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { validateCsrfToken } from '../../middleware/csrf.js';
 
 const router = Router();
 
@@ -159,7 +160,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  * DELETE /api/v1/buildings/:id
  * Delete building by UUID (including associated IFC file)
  */
-router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate path parameter
     const { id } = buildingIdSchema.parse(req.params);

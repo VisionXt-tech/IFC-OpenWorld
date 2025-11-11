@@ -11,6 +11,7 @@ import { s3Service } from '../../services/s3Service.js';
 import { celeryService } from '../../services/celeryService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { validateCsrfToken } from '../../middleware/csrf.js';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ const uploadCompleteSchema = z.object({
  * POST /api/v1/upload/request
  * Request presigned URL for direct browser upload
  */
-router.post('/request', async (req: Request, res: Response): Promise<void> => {
+router.post('/request', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { fileName, fileSize, contentType } = uploadRequestSchema.parse(req.body);
@@ -145,7 +146,7 @@ router.post('/request', async (req: Request, res: Response): Promise<void> => {
  * POST /api/v1/upload/complete
  * Mark upload as complete after browser finishes uploading
  */
-router.post('/complete', async (req: Request, res: Response): Promise<void> => {
+router.post('/complete', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { fileId, s3Key } = uploadCompleteSchema.parse(req.body);

@@ -7,13 +7,16 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { globalRateLimiter, uploadRateLimiter } from './middleware/rateLimit.js';
+import { csrfErrorHandler } from './middleware/csrf.js';
 import { healthRouter } from './api/v1/health.js';
 import { uploadRouter } from './api/v1/upload.js';
 import { buildingsRouter } from './api/v1/buildings.js';
+import { csrfRouter } from './api/v1/csrf.js';
 
 const app: Express = express();
 
@@ -64,9 +67,12 @@ app.use(
     origin: config.cors.origin.split(',').map((o) => o.trim()),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'CSRF-Token'],
   })
 );
+
+// Cookie parsing (required for CSRF protection)
+app.use(cookieParser());
 
 // Body parsing
 app.use(express.json());
@@ -74,10 +80,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use('/api/v1/health', healthRouter);
+app.use('/api/v1', csrfRouter); // CSRF token endpoint
 app.use('/api/v1/upload', uploadRateLimiter, uploadRouter);
 app.use('/api/v1/buildings', buildingsRouter);
 
 // Error handling (must be last)
+app.use(csrfErrorHandler); // CSRF error handler
 app.use(errorHandler);
 
 // Start server
