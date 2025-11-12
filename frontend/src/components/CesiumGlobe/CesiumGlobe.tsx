@@ -41,6 +41,7 @@ export interface CesiumGlobeProps {
  * Helper function to fly camera to specific coordinates
  * Use this after upload to zoom to building location
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function flyToLocation(
   viewer: Cesium.Viewer,
   longitude: number,
@@ -70,9 +71,23 @@ function CesiumGlobe({
   const markerMap = useRef<Map<string, Cesium.Entity>>(new Map()); // OPT-003: Track markers for incremental updates
   const buildings = useBuildingsStore((state) => state.buildings);
 
+  // Store callbacks in refs to avoid re-initializing Cesium viewer when they change
+  const onReadyRef = useRef(onReady);
+  const onErrorRef = useRef(onError);
+  const onBuildingClickRef = useRef(onBuildingClick);
+
+  // Update callback refs when props change
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onErrorRef.current = onError;
+    onBuildingClickRef.current = onBuildingClick;
+  }, [onReady, onError, onBuildingClick]);
+
   useEffect(() => {
     if (!cesiumContainer.current) return;
 
+    // Capture ref values for cleanup to avoid stale closure issues
+    const markers = markerMap.current;
     const startTime = performance.now();
 
     try {
@@ -134,7 +149,7 @@ function CesiumGlobe({
 
       // Add click handler for building selection
       // BUGFIX: Store handler reference for proper cleanup
-      if (onBuildingClick) {
+      if (onBuildingClickRef.current) {
         viewerInstance.screenSpaceEventHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
           const pickedObject = viewerInstance.scene.pick(movement.position) as
             | { id?: Cesium.Entity | { id?: string } }
@@ -145,24 +160,24 @@ function CesiumGlobe({
             pickedObject.id instanceof Cesium.Entity &&
             typeof pickedObject.id.id === 'string'
           ) {
-            onBuildingClick(pickedObject.id.id);
+            onBuildingClickRef.current?.(pickedObject.id.id);
           }
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
       }
 
       // Call onReady callback
-      onReady?.(viewerInstance);
+      onReadyRef.current?.(viewerInstance);
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       console.error('[CesiumGlobe] Initialization error:', err);
-      onError?.(err);
+      onErrorRef.current?.(err);
     }
 
     // Cleanup on unmount
     return () => {
       // BUGFIX: Clear marker map to prevent memory leak
-      markerMap.current.clear();
+      markers.clear();
 
       // BUGFIX: Remove click event handler to prevent memory leak
       if (viewer.current) {
@@ -327,7 +342,7 @@ function CesiumGlobe({
     if (addedCount > 0) {
       console.log(`[CesiumGlobe] Added ${addedCount} new markers`);
     }
-  }, [buildings]);
+  }, [buildings, show3DModels]);
 
   return (
     <div className="cesium-globe-container">
