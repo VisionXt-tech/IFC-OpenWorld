@@ -149,6 +149,57 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
             </section>
           )}
 
+          {/* 3D Model Section */}
+          {properties.modelUrl && (
+            <section className="info-section">
+              <h3>🏢 3D Model</h3>
+              <div className="info-grid">
+                <div className="info-item">
+                  <span className="info-label">Status:</span>
+                  <span className="info-value" style={{ color: '#4caf50', fontWeight: 'bold' }}>
+                    ✅ Available
+                  </span>
+                </div>
+                {properties.modelFormat && (
+                  <div className="info-item">
+                    <span className="info-label">Format:</span>
+                    <span className="info-value">{properties.modelFormat.toUpperCase()}</span>
+                  </div>
+                )}
+                {properties.modelSizeMb && (
+                  <div className="info-item">
+                    <span className="info-label">Size:</span>
+                    <span className="info-value">{properties.modelSizeMb.toFixed(2)} MB</span>
+                  </div>
+                )}
+                <div className="info-item full-width">
+                  <span className="info-label">Hint:</span>
+                  <span className="info-value" style={{ fontSize: '0.9em', fontStyle: 'italic' }}>
+                    Use the "🏢 3D View" toggle to see this building in 3D
+                  </span>
+                </div>
+              </div>
+            </section>
+          )}
+          {!properties.modelUrl && (
+            <section className="info-section">
+              <h3>🏢 3D Model</h3>
+              <div className="info-grid">
+                <div className="info-item full-width">
+                  <span className="info-label">Status:</span>
+                  <span className="info-value" style={{ color: '#ff9800' }}>
+                    ⚠️ Not available
+                  </span>
+                </div>
+                <div className="info-item full-width">
+                  <span className="info-value" style={{ fontSize: '0.9em', fontStyle: 'italic' }}>
+                    The IFC file might not contain 3D geometry or conversion failed
+                  </span>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Upload Info Section */}
           <section className="info-section">
             <h3>📅 Upload Information</h3>

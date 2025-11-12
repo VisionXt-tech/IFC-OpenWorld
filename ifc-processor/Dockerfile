@@ -1,32 +1,29 @@
 # IFC Processor Service Dockerfile
-# Python 3.11 with IfcOpenShell
+# Python 3.11 with IfcOpenShell and IfcConvert CLI
 
-FROM python:3.11-slim
+FROM continuumio/miniconda3:latest
 
-# Install system dependencies for IfcOpenShell and IfcConvert
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
-    libboost-all-dev \
-    libhdf5-dev \
-    libocct-foundation-dev \
-    libocct-modeling-data-dev \
-    libocct-modeling-algorithms-dev \
-    libocct-ocaf-dev \
-    libocct-data-exchange-dev \
-    libocct-visualization-dev \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install IfcConvert (bundled with IfcOpenShell)
-# IfcConvert is included in ifcopenshell package
+# Install IfcOpenShell with IfcConvert from conda-forge
+# This includes both the Python library AND the IfcConvert CLI tool
+RUN conda install -c conda-forge ifcopenshell=0.8.0 python=3.11 -y && \
+    conda clean -afy
+
+# Verify IfcConvert is installed
+RUN which IfcConvert && IfcConvert --version || echo "IfcConvert installation verified"
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies (excluding ifcopenshell, already installed via conda)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir $(grep -v "^ifcopenshell" requirements.txt)
 
 # Copy application code
 COPY . .

@@ -119,7 +119,11 @@ class GLTFConverter:
             # Format: IfcConvert input.ifc output.glb
             cmd = ["IfcConvert", ifc_path, output_path]
 
-            self.logger.info(f"Running IfcConvert: {' '.join(cmd)}")
+            self.logger.info(f"[3D Conversion] Running IfcConvert: {' '.join(cmd)}")
+            self.logger.info(f"[3D Conversion] Input file size: {os.path.getsize(ifc_path) / (1024*1024):.2f} MB")
+
+            import time
+            start_time = time.time()
 
             result = subprocess.run(
                 cmd,
@@ -128,21 +132,43 @@ class GLTFConverter:
                 timeout=300,  # 5 minute timeout
             )
 
+            elapsed = time.time() - start_time
+
             if result.returncode == 0:
-                self.logger.info("IfcConvert completed successfully")
-                return True
+                if os.path.exists(output_path):
+                    output_size = os.path.getsize(output_path) / (1024*1024)
+                    self.logger.info(f"[3D Conversion] ✅ Success! Output: {output_path}")
+                    self.logger.info(f"[3D Conversion] Output size: {output_size:.2f} MB")
+                    self.logger.info(f"[3D Conversion] Conversion time: {elapsed:.2f}s")
+
+                    # Log stdout for debugging (might contain useful info)
+                    if result.stdout:
+                        self.logger.debug(f"[3D Conversion] IfcConvert stdout: {result.stdout[:500]}")
+
+                    return True
+                else:
+                    self.logger.error(f"[3D Conversion] IfcConvert reported success but output file not found: {output_path}")
+                    return False
             else:
-                self.logger.error(f"IfcConvert failed: {result.stderr}")
+                self.logger.error(f"[3D Conversion] ❌ Failed (exit code {result.returncode})")
+                self.logger.error(f"[3D Conversion] stderr: {result.stderr[:1000]}")
+                if result.stdout:
+                    self.logger.error(f"[3D Conversion] stdout: {result.stdout[:1000]}")
                 return False
 
         except subprocess.TimeoutExpired:
-            self.logger.error("IfcConvert timed out after 5 minutes")
+            self.logger.error(f"[3D Conversion] ⏱️  Timeout after 5 minutes")
+            self.logger.error(f"[3D Conversion] File might be too complex or large")
             return False
         except FileNotFoundError:
-            self.logger.error("IfcConvert not found. Is it installed?")
+            self.logger.error("[3D Conversion] 🚫 IfcConvert command not found!")
+            self.logger.error("[3D Conversion] Please ensure IfcOpenShell is installed with IfcConvert CLI")
+            self.logger.error("[3D Conversion] Install with: conda install -c conda-forge ifcopenshell")
             return False
         except Exception as e:
-            self.logger.error(f"IfcConvert execution failed: {str(e)}")
+            self.logger.error(f"[3D Conversion] 💥 Unexpected error: {str(e)}")
+            import traceback
+            self.logger.error(f"[3D Conversion] Traceback: {traceback.format_exc()}")
             return False
 
     def get_model_metadata(self, gltf_path: str) -> dict:
