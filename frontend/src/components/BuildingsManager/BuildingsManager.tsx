@@ -207,7 +207,26 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
                   }}
                 />
                 <div className="building-info">
-                  <div className="building-name">{sanitizeBuildingName(building.properties.name)}</div>
+                  <div className="building-name">
+                    {sanitizeBuildingName(building.properties.name)}
+                    {building.properties.modelUrl && (
+                      <span
+                        className="model-badge"
+                        title={`3D model available (${building.properties.modelSizeMb?.toFixed(1) ?? '?'} MB ${building.properties.modelFormat ?? 'glb'})`}
+                        style={{
+                          marginLeft: '8px',
+                          padding: '2px 6px',
+                          backgroundColor: '#4caf50',
+                          color: 'white',
+                          fontSize: '0.75em',
+                          borderRadius: '3px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        3D
+                      </span>
+                    )}
+                  </div>
                   <div className="building-details">
                     <span>📍 {building.geometry.coordinates[1].toFixed(4)}°, {building.geometry.coordinates[0].toFixed(4)}°</span>
                     {building.properties.height && (

@@ -5,6 +5,7 @@ import UploadZone from '@/components/UploadZone';
 import BuildingsManager from '@/components/BuildingsManager';
 import InfoPanel from '@/components/InfoPanel';
 import { useUploadStore, useBuildingsStore } from '@/store';
+import { useToast } from '@/contexts/ToastContext';
 import './App.css';
 
 function App() {
@@ -20,6 +21,10 @@ function App() {
   const { uploadStatus, processingResult, startUpload, cancelUpload, resetUpload } =
     useUploadStore();
   const { buildings, fetchBuildings } = useBuildingsStore();
+  const { info, warning } = useToast();
+
+  // Calculate how many buildings have 3D models
+  const buildingsWithModels = buildings.filter(b => b.properties.modelUrl).length;
 
   // PERFORMANCE: Memoize callbacks to prevent unnecessary re-renders
   const handleGlobeReady = useCallback((viewer: Viewer) => {
@@ -236,12 +241,31 @@ function App() {
         <button
           className="toggle-3d-button"
           onClick={() => {
-            setShow3DModels(!show3DModels);
+            const newMode = !show3DModels;
+            setShow3DModels(newMode);
+
+            // Show notifications based on state
+            if (newMode) {
+              // Switching to 3D
+              if (buildingsWithModels === 0) {
+                warning('No 3D models available yet. Upload IFC files with geometry to see 3D buildings.', 5000);
+              } else if (buildingsWithModels < buildings.length) {
+                info(`3D View enabled. Showing ${buildingsWithModels} building(s) in 3D (${buildings.length - buildingsWithModels} without 3D models will show as markers).`, 4000);
+              } else {
+                info(`3D View enabled. All ${buildingsWithModels} building(s) have 3D models.`, 3000);
+              }
+            } else {
+              // Switching to 2D
+              info('2D View enabled. Showing all buildings as markers.', 2000);
+            }
           }}
           aria-label={show3DModels ? 'Switch to 2D markers' : 'Switch to 3D models'}
           type="button"
+          title={buildingsWithModels > 0
+            ? `${buildingsWithModels} of ${buildings.length} building(s) have 3D models`
+            : 'No 3D models available yet'}
         >
-          {show3DModels ? '📍 2D View' : '🏢 3D View'}
+          {show3DModels ? '📍 2D View' : `🏢 3D View${buildingsWithModels > 0 ? ` (${buildingsWithModels})` : ''}`}
         </button>
       )}
 
