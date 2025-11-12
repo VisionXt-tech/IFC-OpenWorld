@@ -142,7 +142,7 @@ function CesiumGlobe({
           // BUGFIX: Type-safe checking instead of unsafe cast
           if (
             Cesium.defined(pickedObject) &&
-            pickedObject?.id instanceof Cesium.Entity &&
+            pickedObject.id instanceof Cesium.Entity &&
             typeof pickedObject.id.id === 'string'
           ) {
             onBuildingClick(pickedObject.id.id);
@@ -270,32 +270,30 @@ function CesiumGlobe({
           console.warn(`[CesiumGlobe] Falling back to 2D marker for ${safeName}`);
 
           // Fallback to 2D marker on error
-          if (viewer.current) {
-            const entity = viewer.current.entities.add({
-              id: buildingFeature.id,
-              name: safeName,
-              position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
-              point: {
-                pixelSize: 15,
-                color: Cesium.Color.ORANGE, // Orange for fallback markers
-                outlineColor: Cesium.Color.WHITE,
-                outlineWidth: 2,
-              },
-              label: {
-                text: `${safeName} (3D load failed)`,
-                font: '14px sans-serif',
-                fillColor: Cesium.Color.WHITE,
-                outlineColor: Cesium.Color.BLACK,
-                outlineWidth: 2,
-                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                pixelOffset: new Cesium.Cartesian2(0, -20),
-              },
-            });
+          const entity = viewer.current.entities.add({
+            id: buildingFeature.id,
+            name: safeName,
+            position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+            point: {
+              pixelSize: 15,
+              color: Cesium.Color.ORANGE, // Orange for fallback markers
+              outlineColor: Cesium.Color.WHITE,
+              outlineWidth: 2,
+            },
+            label: {
+              text: `${safeName} (3D load failed)`,
+              font: '14px sans-serif',
+              fillColor: Cesium.Color.WHITE,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 2,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              pixelOffset: new Cesium.Cartesian2(0, -20),
+            },
+          });
 
-            markerMap.current.set(buildingFeature.id, entity);
-            addedCount++;
-          }
+          markerMap.current.set(buildingFeature.id, entity);
+          addedCount++;
         }
       } else {
         // Show 2D marker (default or fallback)
