@@ -57,3 +57,27 @@ export const uploadRateLimiter = rateLimit({
     });
   },
 });
+
+/**
+ * Status polling rate limiter: 300 requests per 5 minutes per IP
+ * Allows frequent polling (every 2 seconds) without hitting limits
+ * 300 requests / 5 minutes = 1 request/second average, with burst allowance
+ */
+export const statusPollingRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 300, // Allows ~1 request per second with burst capacity
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    logger.warn('Status polling rate limit exceeded', {
+      ip: _req.ip,
+      path: _req.path,
+    });
+
+    res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Status polling rate limit exceeded. Please slow down your requests.',
+      retryAfter: 300, // 5 minutes in seconds
+    });
+  },
+});

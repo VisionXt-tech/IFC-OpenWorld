@@ -93,7 +93,8 @@ app.use(express.urlencoded({ extended: true }));
 // API Routes
 app.use('/api/v1/health', healthRouter);
 app.use('/api/v1', csrfRouter); // CSRF token endpoint
-app.use('/api/v1/upload', uploadRateLimiter, uploadRouter);
+// Note: Rate limiters now applied per-endpoint in uploadRouter (see upload.ts)
+app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/buildings', buildingsRouter);
 
 // Static file routes (3D models)

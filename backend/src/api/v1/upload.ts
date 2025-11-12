@@ -2,6 +2,7 @@
  * Upload endpoints
  * POST /api/v1/upload/request - Request presigned upload URL
  * POST /api/v1/upload/complete - Mark upload as complete
+ * GET /api/v1/upload/status/:taskId - Poll processing status
  */
 
 import { Router, type Request, type Response } from 'express';
@@ -13,6 +14,7 @@ import { celeryService } from '../../services/celeryService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { validateCsrfToken } from '../../middleware/csrf.js';
+import { uploadRateLimiter, statusPollingRateLimiter } from '../../middleware/rateLimit.js';
 import { config } from '../../config/index.js';
 
 const router = Router();
@@ -33,8 +35,9 @@ const uploadCompleteSchema = z.object({
 /**
  * POST /api/v1/upload/request
  * Request presigned URL for direct browser upload
+ * Rate limit: 10 requests per hour (uploadRateLimiter)
  */
-router.post('/request', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/request', uploadRateLimiter, validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { fileName, fileSize, contentType } = uploadRequestSchema.parse(req.body);
@@ -153,8 +156,9 @@ router.post('/request', validateCsrfToken, async (req: Request, res: Response): 
 /**
  * POST /api/v1/upload/complete
  * Mark upload as complete after browser finishes uploading
+ * Rate limit: 10 requests per hour (uploadRateLimiter)
  */
-router.post('/complete', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/complete', uploadRateLimiter, validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { fileId, s3Key } = uploadCompleteSchema.parse(req.body);
@@ -257,8 +261,10 @@ router.post('/complete', validateCsrfToken, async (req: Request, res: Response):
 /**
  * GET /api/v1/upload/status/:taskId
  * Get processing task status
+ * Rate limit: 300 requests per 5 minutes (statusPollingRateLimiter)
+ * Allows polling every 2 seconds without hitting limits
  */
-router.get('/status/:taskId', async (req: Request, res: Response): Promise<void> => {
+router.get('/status/:taskId', statusPollingRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { taskId } = req.params;
 
