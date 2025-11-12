@@ -38,7 +38,9 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [building, onClose]);
 
   if (!building) return null;
@@ -72,7 +74,12 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
 
   return (
     <div className="info-panel-overlay" onClick={onClose}>
-      <div className="info-panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="info-panel"
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
         {/* Header */}
         <div className="info-panel-header">
           <h2>{sanitizeBuildingName(properties.name)}</h2>
@@ -122,7 +129,7 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
           </section>
 
           {/* Building Info Section */}
-          {(height || floorCount) && (
+          {(height != null || floorCount != null) && (
             <section className="info-section">
               <h3>🏗️ Building Information</h3>
               <div className="info-grid">

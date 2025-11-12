@@ -37,7 +37,9 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [onClose]);
 
   const handleSelectAll = () => {
@@ -78,7 +80,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
       try {
         const tokenResponse = await fetch('/api/v1/csrf-token');
         if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
+          const tokenData = (await tokenResponse.json()) as { csrfToken: string };
           csrfToken = tokenData.csrfToken;
         }
       } catch (err) {
@@ -138,7 +140,12 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
 
   return (
     <div className="buildings-manager-overlay" onClick={onClose}>
-      <div className="buildings-manager-panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="buildings-manager-panel"
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
         <div className="manager-header">
           <h2>🏗️ Buildings Manager</h2>
           <button className="close-button" onClick={onClose} aria-label="Close">
@@ -185,13 +192,19 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
               <div
                 key={building.id}
                 className={`building-item ${selectedIds.has(building.id) ? 'selected' : ''}`}
-                onClick={() => handleSelectBuilding(building.id)}
+                onClick={() => {
+                  handleSelectBuilding(building.id);
+                }}
               >
                 <input
                   type="checkbox"
                   checked={selectedIds.has(building.id)}
-                  onChange={() => handleSelectBuilding(building.id)}
-                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => {
+                    handleSelectBuilding(building.id);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
                 />
                 <div className="building-info">
                   <div className="building-name">{sanitizeBuildingName(building.properties.name)}</div>

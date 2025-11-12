@@ -80,20 +80,25 @@ class ApiClient {
         return {} as T;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
 
       if (!response.ok) {
         // Backend error response
-        const error: ApiError = {
-          error: data.error || 'Unknown error',
-          message: data.message || response.statusText,
+        const apiError: ApiError = {
+          error: data.error ?? 'Unknown error',
+          message: data.message ?? response.statusText,
           statusCode: response.status,
         };
 
         if (config.features.debug) {
-          console.error('[ApiClient] Error:', error);
+          console.error('[ApiClient] Error:', apiError);
         }
 
+        const error = new Error(apiError.message);
+        Object.assign(error, apiError);
         throw error;
       }
 
@@ -103,17 +108,20 @@ class ApiClient {
         console.error('[ApiClient] Request failed:', error);
       }
 
-      // Re-throw ApiError as-is
-      if (typeof error === 'object' && error !== null && 'statusCode' in error) {
+      // Re-throw ApiError as-is (already an Error object from above)
+      if (error instanceof Error && 'statusCode' in error) {
         throw error;
       }
 
       // Network error or other non-API error
-      throw {
+      const networkError = new Error(
+        error instanceof Error ? error.message : 'Network request failed'
+      );
+      Object.assign(networkError, {
         error: 'NetworkError',
-        message: error instanceof Error ? error.message : 'Network request failed',
         statusCode: 0,
-      } as ApiError;
+      } as Partial<ApiError>);
+      throw networkError;
     }
   }
 }

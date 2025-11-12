@@ -45,8 +45,8 @@ export function flyToLocation(
   viewer: Cesium.Viewer,
   longitude: number,
   latitude: number,
-  height: number = 5000,
-  duration: number = 2
+  height = 5000,
+  duration = 2
 ): void {
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, height),
@@ -136,11 +136,13 @@ function CesiumGlobe({
       // BUGFIX: Store handler reference for proper cleanup
       if (onBuildingClick) {
         viewerInstance.screenSpaceEventHandler.setInputAction((movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
-          const pickedObject = viewerInstance.scene.pick(movement.position);
+          const pickedObject = viewerInstance.scene.pick(movement.position) as
+            | { id?: Cesium.Entity | { id?: string } }
+            | undefined;
           // BUGFIX: Type-safe checking instead of unsafe cast
           if (
             Cesium.defined(pickedObject) &&
-            pickedObject.id instanceof Cesium.Entity &&
+            pickedObject?.id instanceof Cesium.Entity &&
             typeof pickedObject.id.id === 'string'
           ) {
             onBuildingClick(pickedObject.id.id);
@@ -192,8 +194,8 @@ function CesiumGlobe({
 
     // Remove markers for deleted buildings
     markerMap.current.forEach((entity, id) => {
-      if (!currentBuildingIds.has(id)) {
-        viewer.current!.entities.remove(entity);
+      if (!currentBuildingIds.has(id) && viewer.current) {
+        viewer.current.entities.remove(entity);
         markerMap.current.delete(id);
         console.log(`[CesiumGlobe] Removed marker: ${id}`);
       }
@@ -202,8 +204,8 @@ function CesiumGlobe({
     // Add new markers (skip existing ones)
     let addedCount = 0;
     buildings.forEach((buildingFeature) => {
-      // Skip if marker already exists
-      if (markerMap.current.has(buildingFeature.id)) {
+      // Skip if marker already exists or viewer is not ready
+      if (markerMap.current.has(buildingFeature.id) || !viewer.current) {
         return;
       }
 
@@ -226,7 +228,7 @@ function CesiumGlobe({
           const heightOffset = 0; // Models should be at ground level
 
           // Create entity with 3D model
-          const entity = viewer.current!.entities.add({
+          const entity = viewer.current.entities.add({
             id: buildingFeature.id,
             name: safeName,
             position: Cesium.Cartesian3.fromDegrees(longitude, latitude, heightOffset),
@@ -255,7 +257,9 @@ function CesiumGlobe({
           });
 
           // Add silhouette on hover (for better visibility)
-          entity.model!.silhouetteSize = new Cesium.ConstantProperty(2);
+          if (entity.model) {
+            entity.model.silhouetteSize = new Cesium.ConstantProperty(2);
+          }
 
           markerMap.current.set(buildingFeature.id, entity);
           addedCount++;
@@ -266,34 +270,36 @@ function CesiumGlobe({
           console.warn(`[CesiumGlobe] Falling back to 2D marker for ${safeName}`);
 
           // Fallback to 2D marker on error
-          const entity = viewer.current!.entities.add({
-            id: buildingFeature.id,
-            name: safeName,
-            position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
-            point: {
-              pixelSize: 15,
-              color: Cesium.Color.ORANGE, // Orange for fallback markers
-              outlineColor: Cesium.Color.WHITE,
-              outlineWidth: 2,
-            },
-            label: {
-              text: `${safeName} (3D load failed)`,
-              font: '14px sans-serif',
-              fillColor: Cesium.Color.WHITE,
-              outlineColor: Cesium.Color.BLACK,
-              outlineWidth: 2,
-              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              pixelOffset: new Cesium.Cartesian2(0, -20),
-            },
-          });
+          if (viewer.current) {
+            const entity = viewer.current.entities.add({
+              id: buildingFeature.id,
+              name: safeName,
+              position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+              point: {
+                pixelSize: 15,
+                color: Cesium.Color.ORANGE, // Orange for fallback markers
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2,
+              },
+              label: {
+                text: `${safeName} (3D load failed)`,
+                font: '14px sans-serif',
+                fillColor: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.BLACK,
+                outlineWidth: 2,
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                pixelOffset: new Cesium.Cartesian2(0, -20),
+              },
+            });
 
-          markerMap.current.set(buildingFeature.id, entity);
-          addedCount++;
+            markerMap.current.set(buildingFeature.id, entity);
+            addedCount++;
+          }
         }
       } else {
         // Show 2D marker (default or fallback)
-        const entity = viewer.current!.entities.add({
+        const entity = viewer.current.entities.add({
           id: buildingFeature.id,
           name: safeName,
           position: Cesium.Cartesian3.fromDegrees(longitude, latitude),

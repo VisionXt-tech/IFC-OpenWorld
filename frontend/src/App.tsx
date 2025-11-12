@@ -97,7 +97,9 @@ function App() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [showUploadZone, showBuildingsManager, selectedBuildingId]);
 
   // Watch for successful upload
@@ -193,7 +195,9 @@ function App() {
           />
           <button
             className="close-upload-button"
-            onClick={() => setShowUploadZone(false)}
+            onClick={() => {
+              setShowUploadZone(false);
+            }}
             aria-label="Close upload panel"
             type="button"
           >
@@ -205,7 +209,9 @@ function App() {
       {!showUploadZone && (
         <button
           className="open-upload-button"
-          onClick={() => setShowUploadZone(true)}
+          onClick={() => {
+            setShowUploadZone(true);
+          }}
           aria-label="Open upload panel"
           type="button"
         >
@@ -216,7 +222,9 @@ function App() {
       {!showUploadZone && (
         <button
           className="open-manager-button"
-          onClick={() => setShowBuildingsManager(true)}
+          onClick={() => {
+            setShowBuildingsManager(true);
+          }}
           aria-label="Open buildings manager"
           type="button"
         >
@@ -227,7 +235,9 @@ function App() {
       {!showUploadZone && (
         <button
           className="toggle-3d-button"
-          onClick={() => setShow3DModels(!show3DModels)}
+          onClick={() => {
+            setShow3DModels(!show3DModels);
+          }}
           aria-label={show3DModels ? 'Switch to 2D markers' : 'Switch to 3D models'}
           type="button"
         >
@@ -236,7 +246,11 @@ function App() {
       )}
 
       {showBuildingsManager && (
-        <BuildingsManager onClose={() => setShowBuildingsManager(false)} />
+        <BuildingsManager
+          onClose={() => {
+            setShowBuildingsManager(false);
+          }}
+        />
       )}
 
       {selectedBuilding && (
