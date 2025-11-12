@@ -65,12 +65,7 @@ describe('GET /api/v1/health', () => {
 
   it('should return 200 with healthy status when database is connected', async () => {
     const mockDbResult = {
-      rows: [
-        {
-          now: new Date('2025-10-27T12:00:00Z'),
-          version: 'PostgreSQL 15.8 on x86_64-pc-linux-musl',
-        },
-      ],
+      rows: [{ result: 1 }],
       command: 'SELECT',
       rowCount: 1,
       oid: 0,
@@ -83,11 +78,9 @@ describe('GET /api/v1/health', () => {
 
     expect(response.body).toHaveProperty('status', 'healthy');
     expect(response.body).toHaveProperty('timestamp');
-    expect(response.body).toHaveProperty('environment', 'test');
-    expect(response.body).toHaveProperty('database');
-    expect(response.body.database).toHaveProperty('status', 'connected');
-    expect(response.body.database).toHaveProperty('version', 'PostgreSQL 15.8');
-    expect(response.body.database).toHaveProperty('timestamp');
+    expect(response.body).toHaveProperty('services');
+    expect(response.body.services).toHaveProperty('database', 'connected');
+    expect(response.body.services).toHaveProperty('api', 'operational');
   });
 
   it('should return 503 when database connection fails', async () => {
@@ -97,20 +90,15 @@ describe('GET /api/v1/health', () => {
 
     expect(response.body).toHaveProperty('status', 'unhealthy');
     expect(response.body).toHaveProperty('timestamp');
-    expect(response.body).toHaveProperty('environment', 'test');
-    expect(response.body).toHaveProperty('database');
-    expect(response.body.database).toHaveProperty('status', 'disconnected');
-    expect(response.body.database).toHaveProperty('error', 'Connection refused');
+    expect(response.body).toHaveProperty('services');
+    expect(response.body.services).toHaveProperty('database', 'disconnected');
+    expect(response.body.services).toHaveProperty('api', 'operational');
+    expect(response.body).toHaveProperty('message', 'Service degraded - database connection failed');
   });
 
   it('should return JSON content-type', async () => {
     mockPoolQuery.mockResolvedValue({
-      rows: [
-        {
-          now: new Date(),
-          version: 'PostgreSQL 15.8',
-        },
-      ],
+      rows: [{ result: 1 }],
       command: 'SELECT',
       rowCount: 1,
       oid: 0,
@@ -122,15 +110,9 @@ describe('GET /api/v1/health', () => {
     expect(response.headers['content-type']).toMatch(/application\/json/);
   });
 
-  it('should parse PostgreSQL version correctly', async () => {
+  it('should not expose database version for security', async () => {
     mockPoolQuery.mockResolvedValue({
-      rows: [
-        {
-          now: new Date(),
-          version:
-            'PostgreSQL 15.8 (Debian 15.8-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc',
-        },
-      ],
+      rows: [{ result: 1 }],
       command: 'SELECT',
       rowCount: 1,
       oid: 0,
@@ -139,6 +121,8 @@ describe('GET /api/v1/health', () => {
 
     const response = await request(app).get('/api/v1/health').expect(200);
 
-    expect(response.body.database.version).toBe('PostgreSQL 15.8');
+    // SECURITY: Database version should not be exposed to prevent information disclosure
+    expect(response.body).not.toHaveProperty('database.version');
+    expect(response.body).not.toHaveProperty('environment');
   });
 });

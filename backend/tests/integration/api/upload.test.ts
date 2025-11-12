@@ -5,7 +5,8 @@
 import request from 'supertest';
 import { createTestApp } from '../../helpers/testApp.js';
 import { pool } from '../../../src/db/pool.js';
-import { S3Service } from '../../../src/services/s3Service.js';
+import { s3Service } from '../../../src/services/s3Service.js';
+import { celeryService } from '../../../src/services/celeryService.js';
 
 // Mock database pool
 jest.mock('../../../src/db/pool.js', () => ({
@@ -14,8 +15,27 @@ jest.mock('../../../src/db/pool.js', () => ({
   },
 }));
 
-// Mock S3Service
-jest.mock('../../../src/services/s3Service.js');
+// Mock S3Service instance
+jest.mock('../../../src/services/s3Service.js', () => ({
+  s3Service: {
+    generatePresignedUrl: jest.fn(),
+    fileExists: jest.fn(),
+    deleteFile: jest.fn(),
+  },
+  S3Service: jest.fn(),
+}));
+
+// Mock CeleryService instance
+jest.mock('../../../src/services/celeryService.js', () => ({
+  celeryService: {
+    triggerIFCProcessing: jest.fn(),
+  },
+}));
+
+// Mock CSRF middleware
+jest.mock('../../../src/middleware/csrf.js', () => ({
+  validateCsrfToken: (req: any, res: any, next: any) => next(),
+}));
 
 // Mock logger
 jest.mock('../../../src/utils/logger.js', () => ({
@@ -57,6 +77,8 @@ jest.mock('../../../src/config/index.js', () => ({
 describe('POST /api/v1/upload', () => {
   const app = createTestApp();
   const mockPoolQuery = pool.query as jest.MockedFunction<typeof pool.query>;
+  const mockS3Service = s3Service as jest.Mocked<typeof s3Service>;
+  const mockCeleryService = celeryService as jest.Mocked<typeof celeryService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -67,13 +89,15 @@ describe('POST /api/v1/upload', () => {
       const mockFileId = 'test-file-id-123';
       const mockPresignedUrl = 'https://s3.amazonaws.com/bucket/file.ifc?signature=...';
 
+      // Mock the INSERT query to create the file record
+      // Note: Auto-cleanup doesn't run in test mode, only in development mode
       mockPoolQuery.mockResolvedValue({
         rows: [
           {
             id: mockFileId,
             fileName: 'test.ifc',
             fileSize: 1024000,
-            s3Key: 'ifc-raw/test.ifc',
+            s3Key: expect.any(String),
             uploadStatus: 'pending',
             processingStatus: 'not_started',
           },
@@ -84,11 +108,8 @@ describe('POST /api/v1/upload', () => {
         fields: [],
       });
 
-      // Mock S3Service.generatePresignedUrl
-      const mockS3Service = S3Service as jest.MockedClass<typeof S3Service>;
-      mockS3Service.prototype.generatePresignedUrl = jest
-        .fn()
-        .mockResolvedValue(mockPresignedUrl);
+      // Mock s3Service.generatePresignedUrl
+      mockS3Service.generatePresignedUrl.mockResolvedValue(mockPresignedUrl);
 
       const response = await request(app)
         .post('/api/v1/upload/request')

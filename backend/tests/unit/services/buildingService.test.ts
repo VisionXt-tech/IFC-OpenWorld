@@ -227,8 +227,8 @@ describe('BuildingService', () => {
       await service.queryByBoundingBox(bbox, 50, 'cursor-id-123');
 
       expect(mockPoolQuery).toHaveBeenCalledWith(
-        expect.stringContaining("AND id > 'cursor-id-123'"),
-        [12.4, 41.8, 12.6, 42.0, 50]
+        expect.stringContaining("AND id > $5"),
+        [12.4, 41.8, 12.6, 42.0, 'cursor-id-123', 50]
       );
     });
   });
