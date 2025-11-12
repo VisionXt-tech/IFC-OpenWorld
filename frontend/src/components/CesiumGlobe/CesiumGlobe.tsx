@@ -231,7 +231,7 @@ function CesiumGlobe({
             name: safeName,
             position: Cesium.Cartesian3.fromDegrees(longitude, latitude, heightOffset),
             model: {
-              uri: `${config.api.baseURL}${properties.modelUrl}`,
+              uri: `${config.api.baseUrl}${properties.modelUrl}`,
               minimumPixelSize: 64, // Reduced from 128 for better performance
               maximumScale: 20000,
               scale: 1.0,
