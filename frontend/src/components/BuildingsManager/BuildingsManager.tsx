@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBuildingsStore } from '@/store';
 import { sanitizeBuildingName } from '@/utils/sanitize';
 import { useToast } from '@/contexts/ToastContext';
+import { deleteBuilding } from '@/services/api/buildingsApi';
 import './BuildingsManager.css';
 
 /**
@@ -75,30 +76,10 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     try {
       const idsToDelete = Array.from(selectedIds);
 
-      // SECURITY: Fetch CSRF token for DELETE requests
-      let csrfToken: string | null = null;
-      try {
-        const tokenResponse = await fetch('/api/v1/csrf-token');
-        if (tokenResponse.ok) {
-          const tokenData = (await tokenResponse.json()) as { csrfToken: string };
-          csrfToken = tokenData.csrfToken;
-        }
-      } catch (err) {
-        console.error('[BuildingsManager] Failed to fetch CSRF token:', err);
-      }
-
       // IMPROVEMENT: Use Promise.allSettled to handle partial failures
+      // CSRF token is now handled automatically by apiClient
       const deletePromises = idsToDelete.map(async (id) => {
-        const response = await fetch(`/api/v1/buildings/${id}`, {
-          method: 'DELETE',
-          headers: {
-            ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to delete building ${id}: ${response.statusText}`);
-        }
+        await deleteBuilding(id);
         return id;
       });
 

@@ -42,3 +42,11 @@ export async function getBuildingById(id: string): Promise<Building> {
   const response = await apiClient.get<{ building: Building }>(`/buildings/${id}`);
   return response.building;
 }
+
+/**
+ * Delete building by ID
+ * Also deletes associated IFC file from S3
+ */
+export async function deleteBuilding(id: string): Promise<{ success: boolean }> {
+  return apiClient.delete<{ success: boolean }>(`/buildings/${id}`);
+}
