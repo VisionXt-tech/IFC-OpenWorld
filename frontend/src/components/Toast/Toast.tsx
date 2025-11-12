@@ -21,7 +21,9 @@ function Toast({ message, type = 'info', duration = 3000, onClose, icon }: Toast
       onClose();
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [duration, onClose]);
 
   const getIcon = () => {

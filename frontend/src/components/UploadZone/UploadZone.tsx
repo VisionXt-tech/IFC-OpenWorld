@@ -106,7 +106,7 @@ function UploadZone({
     multiple: false
   });
 
-  const displayError = error || validationError;
+  const displayError = error ?? validationError;
 
   return (
     <div className="upload-zone-container">

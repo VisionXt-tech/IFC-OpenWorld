@@ -89,7 +89,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       console.log('[UploadStore] Upload complete, starting IFC processing', { taskId, fileId });
 
       // Start polling for processing status
-      get().pollProcessingStatus();
+      void get().pollProcessingStatus();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Upload failed. Please try again.';
@@ -162,10 +162,10 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           });
 
           console.error('[UploadStore] Processing failed:', errorMessage);
-        } else if (result && typeof result === 'object' && 'status' in result && result.status === 'completed') {
+        } else if (result && typeof result === 'object' && 'status' in result) {
           // Task completed successfully with coordinates
           set({
-            processingResult: result as Extract<ProcessingStatusResponse['result'], { status: 'completed' }>,
+            processingResult: result,
             uploadStatus: {
               ...get().uploadStatus,
               status: 'success',
@@ -192,7 +192,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           uploadStatus: {
             ...get().uploadStatus,
             status: 'error',
-            error: statusResponse.error || 'Processing failed',
+            error: statusResponse.error ?? 'Processing failed',
           },
           pollingTimeoutId: null,
         });
@@ -201,7 +201,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       } else {
         // BUGFIX: Still processing (PENDING, STARTED, RETRY), schedule next poll and track timeout ID
         const timeoutId = setTimeout(() => {
-          get().pollProcessingStatus();
+          void get().pollProcessingStatus();
         }, 2000);
 
         set({ pollingTimeoutId: timeoutId });
