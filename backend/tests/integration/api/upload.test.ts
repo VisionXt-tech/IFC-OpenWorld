@@ -170,11 +170,7 @@ describe('POST /api/v1/upload', () => {
 
     it('should handle database errors', async () => {
       mockPoolQuery.mockRejectedValue(new Error('Database error'));
-
-      const mockS3Service = S3Service as jest.MockedClass<typeof S3Service>;
-      mockS3Service.prototype.generatePresignedUrl = jest
-        .fn()
-        .mockResolvedValue('https://s3.amazonaws.com/bucket/file.ifc');
+      mockS3Service.generatePresignedUrl.mockResolvedValue('https://s3.amazonaws.com/bucket/file.ifc');
 
       const response = await request(app)
         .post('/api/v1/upload/request')
@@ -191,7 +187,7 @@ describe('POST /api/v1/upload', () => {
 
   describe('/complete - Mark upload as complete', () => {
     it('should mark upload as complete when file exists in S3', async () => {
-      const fileId = 'test-file-id-123';
+      const fileId = '33333333-3333-3333-3333-333333333333'; // Valid UUID
       const s3Key = 'ifc-raw/test.ifc';
 
       // Mock finding existing file
@@ -230,9 +226,9 @@ describe('POST /api/v1/upload', () => {
         fields: [],
       });
 
-      // Mock S3Service.fileExists
-      const mockS3Service = S3Service as jest.MockedClass<typeof S3Service>;
-      mockS3Service.prototype.fileExists = jest.fn().mockResolvedValue(true);
+      // Mock s3Service.fileExists and celeryService.triggerIFCProcessing
+      mockS3Service.fileExists.mockResolvedValue(true);
+      mockCeleryService.triggerIFCProcessing.mockResolvedValue('task-id-123');
 
       const response = await request(app)
         .post('/api/v1/upload/complete')
@@ -248,7 +244,7 @@ describe('POST /api/v1/upload', () => {
     });
 
     it('should return 404 when file record not found', async () => {
-      mockPoolQuery.mockResolvedValue({
+      mockPoolQuery.mockResolvedValueOnce({
         rows: [],
         command: 'SELECT',
         rowCount: 0,
@@ -259,7 +255,7 @@ describe('POST /api/v1/upload', () => {
       const response = await request(app)
         .post('/api/v1/upload/complete')
         .send({
-          fileId: 'non-existent-id',
+          fileId: '00000000-0000-0000-0000-000000000000', // Valid UUID format
           s3Key: 'ifc-raw/test.ifc',
         })
         .expect(404);
@@ -269,10 +265,12 @@ describe('POST /api/v1/upload', () => {
     });
 
     it('should return 400 when S3 key mismatch', async () => {
-      mockPoolQuery.mockResolvedValue({
+      const fileId = '11111111-1111-1111-1111-111111111111'; // Valid UUID
+
+      mockPoolQuery.mockResolvedValueOnce({
         rows: [
           {
-            id: 'test-id',
+            id: fileId,
             fileName: 'test.ifc',
             fileSize: 1024000,
             s3Key: 'ifc-raw/original.ifc',
@@ -289,7 +287,7 @@ describe('POST /api/v1/upload', () => {
       const response = await request(app)
         .post('/api/v1/upload/complete')
         .send({
-          fileId: 'test-id',
+          fileId,
           s3Key: 'ifc-raw/different.ifc',
         })
         .expect(400);
@@ -299,10 +297,10 @@ describe('POST /api/v1/upload', () => {
     });
 
     it('should return 400 when file not found in S3', async () => {
-      const fileId = 'test-id';
+      const fileId = '22222222-2222-2222-2222-222222222222'; // Valid UUID
       const s3Key = 'ifc-raw/test.ifc';
 
-      mockPoolQuery.mockResolvedValue({
+      mockPoolQuery.mockResolvedValueOnce({
         rows: [
           {
             id: fileId,
@@ -319,9 +317,8 @@ describe('POST /api/v1/upload', () => {
         fields: [],
       });
 
-      // Mock S3Service.fileExists returning false
-      const mockS3Service = S3Service as jest.MockedClass<typeof S3Service>;
-      mockS3Service.prototype.fileExists = jest.fn().mockResolvedValue(false);
+      // Mock s3Service.fileExists returning false
+      mockS3Service.fileExists.mockResolvedValue(false);
 
       const response = await request(app)
         .post('/api/v1/upload/complete')
