@@ -5,16 +5,88 @@ import type { ApiError } from '@/types';
  * API Client
  *
  * Base HTTP client for making requests to the backend API.
- * Handles errors, authentication, and response formatting.
+ * Handles errors, authentication, CSRF protection, and response formatting.
  *
  * @see specs/001-plan.md Task 3.4
  */
 
+/**
+ * Get CSRF token from cookie
+ * Backend sets csrf_token cookie with httpOnly=false so we can read it
+ */
+function getCsrfTokenFromCookie(): string | null {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrf_token') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 class ApiClient {
   private baseUrl: string;
+  private csrfToken: string | null = null;
+  private fetchingToken = false;
+  private tokenPromise: Promise<void> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+  }
+
+  /**
+   * Ensure we have a valid CSRF token
+   * Fetch from /csrf-token endpoint if not in cookie
+   */
+  private async ensureCsrfToken(): Promise<void> {
+    // If already fetching, wait for it
+    if (this.fetchingToken && this.tokenPromise) {
+      return this.tokenPromise;
+    }
+
+    // Try to get token from cookie first
+    const cookieToken = getCsrfTokenFromCookie();
+    if (cookieToken) {
+      this.csrfToken = cookieToken;
+      return;
+    }
+
+    // Token not in cookie, fetch from server
+    this.fetchingToken = true;
+    this.tokenPromise = this.fetchCsrfToken();
+
+    try {
+      await this.tokenPromise;
+    } finally {
+      this.fetchingToken = false;
+      this.tokenPromise = null;
+    }
+  }
+
+  /**
+   * Fetch CSRF token from backend
+   */
+  private async fetchCsrfToken(): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/csrf-token`, {
+        credentials: 'include', // Important: send/receive cookies
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CSRF token: ${response.status}`);
+      }
+
+      const data = await response.json() as { csrfToken: string };
+      this.csrfToken = data.csrfToken;
+
+      if (config.features.debug) {
+        console.log('[ApiClient] CSRF token fetched');
+      }
+    } catch (error) {
+      console.error('[ApiClient] Failed to fetch CSRF token:', error);
+      throw error;
+    }
   }
 
   /**
@@ -30,12 +102,31 @@ class ApiClient {
    * Make a POST request
    */
   async post<T>(endpoint: string, body?: unknown): Promise<T> {
+    // Ensure we have CSRF token before making POST request
+    await this.ensureCsrfToken();
+
     return this.request<T>(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(this.csrfToken && { 'X-CSRF-Token': this.csrfToken }),
       },
       body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  /**
+   * Make a DELETE request
+   */
+  async delete<T>(endpoint: string): Promise<T> {
+    // Ensure we have CSRF token before making DELETE request
+    await this.ensureCsrfToken();
+
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+      headers: {
+        ...(this.csrfToken && { 'X-CSRF-Token': this.csrfToken }),
+      },
     });
   }
 
@@ -73,7 +164,11 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(url, options);
+      // Include credentials to send/receive cookies
+      const response = await fetch(url, {
+        ...options,
+        credentials: 'include',
+      });
 
       // Handle non-JSON responses (like 204 No Content)
       if (response.status === 204) {
