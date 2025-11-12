@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.2s ease;
+  animation: overlayFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .info-panel {
@@ -24,6 +24,8 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  animation: panelSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center center;
 }
 
 /* Header */
@@ -34,6 +36,7 @@
   padding: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(135deg, rgba(100, 108, 255, 0.1), rgba(147, 51, 234, 0.1));
+  animation: slideInFromTop 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
 }
 
 .info-panel-header h2 {
@@ -55,13 +58,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .close-button:hover {
   background-color: rgba(255, 107, 107, 0.3);
   border-color: #ff6b6b;
-  transform: scale(1.1);
+  transform: scale(1.15) rotate(90deg);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.close-button:active {
+  transform: scale(1.05) rotate(90deg);
 }
 
 /* Content */
@@ -74,6 +82,27 @@
 /* Sections */
 .info-section {
   margin-bottom: 1.5rem;
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.info-section:nth-child(1) {
+  animation-delay: 0.15s;
+}
+
+.info-section:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.info-section:nth-child(3) {
+  animation-delay: 0.25s;
+}
+
+.info-section:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.info-section:nth-child(5) {
+  animation-delay: 0.35s;
 }
 
 .info-section:last-child {
@@ -186,20 +215,38 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.share-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.share-button:hover::before {
+  left: 100%;
 }
 
 .share-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(100, 108, 255, 0.5);
 }
 
 .share-button:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(100, 108, 255, 0.3);
 }
 
 /* Light mode */
@@ -277,12 +324,90 @@
   }
 }
 
-/* Animation */
-@keyframes fadeIn {
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .info-panel-overlay,
+  .info-panel,
+  .info-panel-header,
+  .info-section {
+    animation: none;
+  }
+
+  .close-button,
+  .share-button {
+    transition: none;
+  }
+
+  .close-button:hover {
+    transform: none;
+  }
+
+  .share-button:hover {
+    transform: none;
+  }
+}
+
+/* Animations */
+@keyframes overlayFadeIn {
   from {
     opacity: 0;
+    backdrop-filter: blur(0px);
   }
   to {
     opacity: 1;
+    backdrop-filter: blur(4px);
   }
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth scrollbar */
+.info-panel-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.info-panel-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.info-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(100, 108, 255, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.info-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 108, 255, 0.7);
 }

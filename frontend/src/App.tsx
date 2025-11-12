@@ -242,10 +242,6 @@ function App() {
       {selectedBuilding && (
         <InfoPanel building={selectedBuilding} onClose={handleCloseInfoPanel} />
       )}
-
-      <footer className="app-footer-overlay">
-        <p>Milestone 3 - Task 3.8: Keyboard Navigation Complete</p>
-      </footer>
     </div>
   );
 }
