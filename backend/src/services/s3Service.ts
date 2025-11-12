@@ -255,6 +255,59 @@ export class S3Service {
       throw new AppError(500, 'Failed to get file metadata');
     }
   }
+
+  /**
+   * Download partial file content from S3 (for magic bytes validation)
+   * @param key - S3 object key
+   * @param start - Start byte position
+   * @param end - End byte position
+   * @returns Buffer with requested bytes
+   * @throws AppError if download fails
+   */
+  async getObjectPartial(key: string, start: number, end: number): Promise<Buffer> {
+    try {
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Range: `bytes=${start}-${end}`, // HTTP Range header
+      });
+
+      const response = await this.s3Client.send(command);
+
+      if (!response.Body) {
+        throw new Error('Empty response body');
+      }
+
+      // Convert stream to buffer
+      const chunks: Uint8Array[] = [];
+      const stream = response.Body as any;
+
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      const buffer = Buffer.concat(chunks);
+
+      logger.debug('Downloaded partial file from S3', {
+        key,
+        start,
+        end,
+        bytesRead: buffer.length,
+      });
+
+      return buffer;
+    } catch (error) {
+      logger.error('Failed to download partial file from S3', {
+        key,
+        start,
+        end,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new AppError(500, 'Failed to read file from storage');
+    }
+  }
 }
 
 // Singleton instance

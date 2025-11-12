@@ -36,6 +36,14 @@ const configSchema = z.object({
   cors: z.object({
     origin: z.string().default('http://localhost:5173'),
   }),
+  redis: z.object({
+    enabled: z.coerce.boolean().default(false),
+    host: z.string().default('localhost'),
+    port: z.coerce.number().min(1).max(65535).default(6379),
+    password: z.string().optional(),
+    db: z.coerce.number().min(0).max(15).default(0),
+    url: z.string().url().optional(), // Alternative to host/port/password
+  }),
   logging: z.object({
     level: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   }),
@@ -68,6 +76,14 @@ export const config = configSchema.parse({
   },
   cors: {
     origin: process.env['CORS_ORIGIN'],
+  },
+  redis: {
+    enabled: process.env['REDIS_ENABLED'],
+    host: process.env['REDIS_HOST'],
+    port: process.env['REDIS_PORT'],
+    password: process.env['REDIS_PASSWORD'],
+    db: process.env['REDIS_DB'],
+    url: process.env['REDIS_URL'],
   },
   logging: {
     level: process.env['LOG_LEVEL'],

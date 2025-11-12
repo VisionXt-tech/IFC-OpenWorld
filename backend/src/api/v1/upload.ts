@@ -6,11 +6,14 @@
 
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { randomBytes } from 'crypto';
 import { pool } from '../../db/pool.js';
 import { s3Service } from '../../services/s3Service.js';
 import { celeryService } from '../../services/celeryService.js';
 import { logger } from '../../utils/logger.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { validateCsrfToken } from '../../middleware/csrf.js';
+import { config } from '../../config/index.js';
 
 const router = Router();
 
@@ -31,7 +34,7 @@ const uploadCompleteSchema = z.object({
  * POST /api/v1/upload/request
  * Request presigned URL for direct browser upload
  */
-router.post('/request', async (req: Request, res: Response): Promise<void> => {
+router.post('/request', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { fileName, fileSize, contentType } = uploadRequestSchema.parse(req.body);
@@ -48,42 +51,48 @@ router.post('/request', async (req: Request, res: Response): Promise<void> => {
     }
 
     // AUTO-CLEANUP: Delete all previous uploads (one-file-at-a-time mode for development)
-    logger.info('Cleaning up previous uploads before new upload');
+    // SECURITY FIX: Only run auto-cleanup in development environment to prevent production data loss
+    if (config.server.env === 'development') {
+      logger.info('Cleaning up previous uploads before new upload (development mode)');
 
-    // Get all existing files from database
-    const existingFilesResult = await pool.query(
-      `SELECT id, s3_key FROM ifc_files WHERE upload_status != 'deleted' ORDER BY created_at DESC`
-    );
-
-    const existingFiles = existingFilesResult.rows as Array<{ id: string; s3_key: string }>;
-
-    if (existingFiles.length > 0) {
-      logger.info(`Found ${existingFiles.length} existing file(s) to delete`);
-
-      // Mark all existing files as deleted in database
-      await pool.query(
-        `UPDATE ifc_files SET upload_status = 'deleted', updated_at = NOW() WHERE upload_status != 'deleted'`
+      // Get all existing files from database
+      const existingFilesResult = await pool.query(
+        `SELECT id, s3_key FROM ifc_files WHERE upload_status != 'deleted' ORDER BY created_at DESC`
       );
 
-      // Delete all existing files from S3
-      for (const file of existingFiles) {
-        try {
-          await s3Service.deleteFile(file.s3_key);
-          logger.info(`Deleted file from S3: ${file.s3_key}`);
-        } catch (error) {
-          logger.warn(`Failed to delete file from S3: ${file.s3_key}`, {
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          // Continue even if S3 deletion fails
-        }
-      }
+      const existingFiles = existingFilesResult.rows as Array<{ id: string; s3_key: string }>;
 
-      logger.info('Cleanup complete');
+      if (existingFiles.length > 0) {
+        logger.info(`Found ${existingFiles.length} existing file(s) to delete`);
+
+        // Mark all existing files as deleted in database
+        await pool.query(
+          `UPDATE ifc_files SET upload_status = 'deleted', updated_at = NOW() WHERE upload_status != 'deleted'`
+        );
+
+        // Delete all existing files from S3
+        for (const file of existingFiles) {
+          try {
+            await s3Service.deleteFile(file.s3_key);
+            logger.info(`Deleted file from S3: ${file.s3_key}`);
+          } catch (error) {
+            logger.warn(`Failed to delete file from S3: ${file.s3_key}`, {
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            // Continue even if S3 deletion fails
+          }
+        }
+
+        logger.info('Cleanup complete');
+      }
+    } else {
+      logger.debug('Skipping auto-cleanup in production mode');
     }
 
     // Generate unique S3 key (without bucket name prefix)
+    // SECURITY FIX: Use cryptographically secure random generation instead of Math.random()
     const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 15);
+    const randomSuffix = randomBytes(8).toString('hex'); // 8 bytes = 16 hex characters
     const s3Key = `${timestamp}-${randomSuffix}-${fileName}`;
 
     // Generate presigned URL
@@ -145,7 +154,7 @@ router.post('/request', async (req: Request, res: Response): Promise<void> => {
  * POST /api/v1/upload/complete
  * Mark upload as complete after browser finishes uploading
  */
-router.post('/complete', async (req: Request, res: Response): Promise<void> => {
+router.post('/complete', validateCsrfToken, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { fileId, s3Key } = uploadCompleteSchema.parse(req.body);

@@ -17,6 +17,7 @@ interface UploadStore {
   taskId: string | null;
   fileId: string | null;
   processingResult: ProcessingStatusResponse['result'] | null;
+  pollingTimeoutId: NodeJS.Timeout | null; // BUGFIX: Track timeout to prevent race conditions
 
   // Actions
   startUpload: (file: File) => Promise<void>;
@@ -27,7 +28,7 @@ interface UploadStore {
 
 const initialState: Pick<
   UploadStore,
-  'uploadStatus' | 'taskId' | 'fileId' | 'processingResult'
+  'uploadStatus' | 'taskId' | 'fileId' | 'processingResult' | 'pollingTimeoutId'
 > = {
   uploadStatus: {
     status: 'idle',
@@ -40,6 +41,7 @@ const initialState: Pick<
   taskId: null,
   fileId: null,
   processingResult: null,
+  pollingTimeoutId: null,
 };
 
 export const useUploadStore = create<UploadStore>((set, get) => ({
@@ -105,6 +107,12 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
   },
 
   cancelUpload: () => {
+    // BUGFIX: Clear polling timeout to prevent race conditions
+    const state = get();
+    if (state.pollingTimeoutId) {
+      clearTimeout(state.pollingTimeoutId);
+    }
+
     // TODO: Implement actual cancellation (abort XHR request)
     set({
       uploadStatus: {
@@ -113,12 +121,20 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         progress: 0,
         error: 'Upload cancelled by user',
       },
+      pollingTimeoutId: null,
     });
   },
 
   pollProcessingStatus: async () => {
-    const { taskId } = get();
+    const state = get();
+    const { taskId, pollingTimeoutId } = state;
     if (!taskId) return;
+
+    // BUGFIX: Clear existing timeout to prevent race conditions
+    if (pollingTimeoutId) {
+      clearTimeout(pollingTimeoutId);
+      set({ pollingTimeoutId: null });
+    }
 
     try {
       const statusResponse = await getProcessingStatus(taskId);
@@ -142,6 +158,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
               status: 'error',
               error: errorMessage,
             },
+            pollingTimeoutId: null,
           });
 
           console.error('[UploadStore] Processing failed:', errorMessage);
@@ -153,6 +170,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
               ...get().uploadStatus,
               status: 'success',
             },
+            pollingTimeoutId: null,
           });
 
           console.log('[UploadStore] Processing complete:', result);
@@ -164,6 +182,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
               status: 'error',
               error: 'Processing completed but returned unexpected result format',
             },
+            pollingTimeoutId: null,
           });
 
           console.error('[UploadStore] Unexpected result format:', result);
@@ -175,14 +194,17 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
             status: 'error',
             error: statusResponse.error || 'Processing failed',
           },
+          pollingTimeoutId: null,
         });
 
         console.error('[UploadStore] Processing failed:', statusResponse.error);
       } else {
-        // Still processing (PENDING, STARTED, RETRY), poll again in 2 seconds
-        setTimeout(() => {
+        // BUGFIX: Still processing (PENDING, STARTED, RETRY), schedule next poll and track timeout ID
+        const timeoutId = setTimeout(() => {
           get().pollProcessingStatus();
         }, 2000);
+
+        set({ pollingTimeoutId: timeoutId });
       }
     } catch (error) {
       const errorMessage =
@@ -194,6 +216,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           status: 'error',
           error: errorMessage,
         },
+        pollingTimeoutId: null,
       });
 
       console.error('[UploadStore] Status polling failed:', error);
@@ -201,6 +224,11 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
   },
 
   resetUpload: () => {
+    // BUGFIX: Clear polling timeout before reset
+    const state = get();
+    if (state.pollingTimeoutId) {
+      clearTimeout(state.pollingTimeoutId);
+    }
     set(initialState);
   },
 }));

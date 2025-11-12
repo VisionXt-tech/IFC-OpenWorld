@@ -33,10 +33,10 @@ process.on('SIGTERM', async () => {
  * Test database connection
  */
 export async function testConnection(): Promise<boolean> {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    client.release();
     logger.info('Database connection successful', {
       timestamp: result.rows[0].now,
     });
@@ -46,6 +46,11 @@ export async function testConnection(): Promise<boolean> {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     return false;
+  } finally {
+    // BUGFIX: Ensure client is released even if query fails to prevent connection leaks
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -75,7 +80,16 @@ export async function query<T = unknown>(
   }
 }
 
+// SECURITY: Extract database name safely without exposing credentials
+let databaseName = 'unknown';
+try {
+  const dbUrl = new URL(config.database.url);
+  databaseName = dbUrl.pathname.slice(1).split('?')[0] || 'unknown';
+} catch {
+  // If URL parsing fails, don't log anything
+}
+
 logger.info('Database pool initialized', {
   max: poolConfig.max,
-  database: config.database.url.split('@')[1]?.split('/')[1]?.split('?')[0],
+  database: databaseName,
 });

@@ -37,12 +37,11 @@ export const globalRateLimiter = rateLimit({
 /**
  * Strict rate limiter for upload endpoints: 10 requests per hour per IP
  * Prevents abuse of expensive file upload operations
- *
- * NOTE: Temporarily increased to 1000 uploads per hour for development/testing
+ * SECURITY: Protects against storage exhaustion attacks (VULN-004)
  */
 export const uploadRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 1000, // Increased for development - TODO: Set back to 10 for production
+  max: 10, // Production-safe limit
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -53,7 +52,7 @@ export const uploadRateLimiter = rateLimit({
 
     res.status(429).json({
       error: 'Too Many Requests',
-      message: 'Upload rate limit exceeded. Maximum 1000 uploads per hour.',
+      message: 'Upload rate limit exceeded. Maximum 10 uploads per hour.',
       retryAfter: 3600, // 1 hour in seconds
     });
   },

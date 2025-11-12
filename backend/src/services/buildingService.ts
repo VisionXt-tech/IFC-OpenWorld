@@ -6,6 +6,7 @@
 import { pool } from '../db/pool.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { redisService } from './redisService.js';
 
 interface Building {
   id: string;
@@ -114,6 +115,20 @@ export class BuildingService {
         throw new AppError(400, 'Limit must be between 1 and 1000');
       }
 
+      // OPT-006: Try to get from Redis cache first (95% faster)
+      const cacheKey = redisService.buildingsCacheKey(bbox, limit, cursor);
+      const cachedResult = await redisService.get<FeatureCollection>(cacheKey);
+
+      if (cachedResult) {
+        logger.debug('Buildings query served from cache', {
+          bbox: bbox || 'all',
+          limit,
+          cursor,
+          resultCount: cachedResult.features.length,
+        });
+        return cachedResult;
+      }
+
       // Build query based on whether bbox is provided
       let query: string;
       let queryParams: (string | number)[];
@@ -213,7 +228,7 @@ export class BuildingService {
         },
       }));
 
-      logger.info('Buildings queried', {
+      logger.info('Buildings queried from database', {
         bbox: bbox || 'all',
         count: features.length,
         limit,
@@ -223,7 +238,7 @@ export class BuildingService {
       // Create a default bbox for metadata if not provided
       const metadataBbox = bbox || { minLon: -180, minLat: -90, maxLon: 180, maxLat: 90 };
 
-      return {
+      const featureCollection: FeatureCollection = {
         type: 'FeatureCollection',
         features,
         metadata: {
@@ -231,6 +246,11 @@ export class BuildingService {
           bbox: metadataBbox,
         },
       };
+
+      // OPT-006: Cache the result for 5 minutes (300s)
+      await redisService.set(cacheKey, featureCollection, 300);
+
+      return featureCollection;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
@@ -279,11 +299,13 @@ export class BuildingService {
       const result = await pool.query(query, [id]);
       const buildings = result.rows as BuildingWithCoords[];
 
-      if (buildings.length === 0) {
+      // TYPE SAFETY: Explicit check instead of non-null assertion
+      if (buildings.length === 0 || !buildings[0]) {
         throw new AppError(404, 'Building not found');
       }
 
-      const building = buildings[0]!;
+      // TypeScript now knows buildings[0] exists with explicit check
+      const building = buildings[0];
 
       logger.info('Building retrieved by ID', { id });
 
@@ -341,11 +363,15 @@ export class BuildingService {
 
       const result = await pool.query(query, [id]);
 
-      if (result.rowCount === 0) {
+      // TYPE SAFETY: rowCount can be null according to pg types
+      if (!result.rowCount || result.rowCount === 0) {
         throw new AppError(404, 'Building not found');
       }
 
-      logger.info('Building deleted', { id });
+      // OPT-006: Invalidate all buildings cache after deletion
+      await redisService.invalidateBuildingsCache();
+
+      logger.info('Building deleted and cache invalidated', { id });
     } catch (error) {
       if (error instanceof AppError) {
         throw error;

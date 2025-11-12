@@ -1,3 +1,5 @@
+@import './styles/design-tokens.css';
+
 .app {
   position: relative;
   width: 100vw;
@@ -5,32 +7,45 @@
   margin: 0;
   padding: 0;
   overflow: hidden;
+  font-family: var(--font-family-base);
+  background: var(--color-background);
 }
 
-/* Overlay header */
+/* Overlay header - Professional design */
 .app-header-overlay {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.8);
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  top: var(--spacing-5);
+  left: var(--spacing-5);
+  z-index: var(--z-index-overlay);
+  background: var(--color-background-overlay);
+  padding: var(--spacing-4) var(--spacing-6);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--backdrop-blur-lg);
+  box-shadow: var(--shadow-elevated-lg);
+  border: 1px solid var(--color-border);
+  animation: fadeIn var(--transition-base) var(--transition-easing-smooth);
 }
 
 .app-header-overlay h1 {
-  font-size: 1.8em;
-  margin: 0 0 0.25rem 0;
-  line-height: 1.1;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-1) 0;
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-primary-400), var(--color-secondary-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .app-header-overlay .status {
   margin: 0;
-  font-size: 0.9em;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 /* Overlay footer */
@@ -209,73 +224,78 @@
   outline-offset: 2px;
 }
 
-/* Open upload button (floating action button) */
+/* Floating Action Buttons - Professional design */
 .open-upload-button {
   position: absolute;
   top: 100px;
-  right: 20px;
-  z-index: 1000;
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #646cff, #747bff);
+  right: var(--spacing-5);
+  z-index: var(--z-index-overlay);
+  padding: var(--spacing-4) var(--spacing-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-elevated);
+  transition: all var(--transition-base) var(--transition-easing-smooth);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-3);
+  backdrop-filter: var(--backdrop-blur-sm);
 }
 
 .open-upload-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(100, 108, 255, 0.6);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: var(--shadow-elevated-lg);
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-600));
 }
 
 .open-upload-button:active {
-  transform: translateY(0);
+  transform: translateY(-1px) scale(1);
+  transition: all var(--transition-fast);
 }
 
 .open-upload-button:focus-visible {
-  outline: 3px solid #646cff;
+  outline: 2px solid var(--color-primary-400);
   outline-offset: 3px;
 }
 
-/* Open manager button (floating action button) */
 .open-manager-button {
   position: absolute;
   top: 165px;
-  right: 20px;
-  z-index: 1000;
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  right: var(--spacing-5);
+  z-index: var(--z-index-overlay);
+  padding: var(--spacing-4) var(--spacing-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  background: linear-gradient(135deg, var(--color-error), var(--color-error-dark));
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-elevated);
+  transition: all var(--transition-base) var(--transition-easing-smooth);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-3);
+  backdrop-filter: var(--backdrop-blur-sm);
 }
 
 .open-manager-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.6);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: var(--shadow-elevated-lg);
+  background: linear-gradient(135deg, var(--color-error-dark), #b71c1c);
 }
 
 .open-manager-button:active {
-  transform: translateY(0);
+  transform: translateY(-1px) scale(1);
+  transition: all var(--transition-fast);
 }
 
 .open-manager-button:focus-visible {
-  outline: 3px solid #e74c3c;
+  outline: 2px solid var(--color-error-light);
   outline-offset: 3px;
 }
 
