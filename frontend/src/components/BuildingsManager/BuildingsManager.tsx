@@ -193,7 +193,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
                     {building.properties.modelUrl && (
                       <span
                         className="model-badge"
-                        title={`3D model available (${building.properties.modelSizeMb?.toFixed(1) ?? '?'} MB ${building.properties.modelFormat ?? 'glb'})`}
+                        title={`3D model available (${building.properties.modelSizeMb != null ? Number(building.properties.modelSizeMb).toFixed(1) : '?'} MB ${building.properties.modelFormat ?? 'glb'})`}
                         style={{
                           marginLeft: '8px',
                           padding: '2px 6px',
