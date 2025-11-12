@@ -1,9 +1,14 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch: # Allow manual deployment
+  # Disabled automatic deployment on push - enable when production is ready
+  # push:
+  #   branches: [main]
+  workflow_dispatch: # Manual deployment only
+  # Uncomment to enable deployment on tags
+  # push:
+  #   tags:
+  #     - 'v*'
 
 env:
   NODE_VERSION: '20'
