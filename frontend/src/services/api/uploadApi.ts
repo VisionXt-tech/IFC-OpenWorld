@@ -46,7 +46,7 @@ export async function uploadToS3(
   console.log('[UploadAPI] Starting S3 upload:', {
     url: presignedUrl,
     fileSize: file.size,
-    contentType: contentType ?? file.type ?? 'application/x-step',
+    contentType: contentType ?? file.type || 'application/x-step',
   });
 
   return new Promise((resolve, reject) => {
@@ -108,7 +108,7 @@ export async function uploadToS3(
 
     // Start upload with correct content type
     xhr.open('PUT', presignedUrl);
-    xhr.setRequestHeader('Content-Type', contentType ?? file.type ?? 'application/x-step');
+    xhr.setRequestHeader('Content-Type', contentType ?? file.type || 'application/x-step');
     // Do NOT set Content-Length - browser sets it automatically and setting it manually causes issues
 
     console.log('[UploadAPI] Sending XHR request...');
