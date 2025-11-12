@@ -166,10 +166,10 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
                     <span className="info-value">{properties.modelFormat.toUpperCase()}</span>
                   </div>
                 )}
-                {properties.modelSizeMb && (
+                {properties.modelSizeMb != null && (
                   <div className="info-item">
                     <span className="info-label">Size:</span>
-                    <span className="info-value">{properties.modelSizeMb.toFixed(2)} MB</span>
+                    <span className="info-value">{Number(properties.modelSizeMb).toFixed(2)} MB</span>
                   </div>
                 )}
                 <div className="info-item full-width">
