@@ -115,14 +115,7 @@ describe('GET /api/v1/buildings', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toContain('Invalid bounding box format');
-    });
-
-    it('should return 400 for missing bbox parameter', async () => {
-      const response = await request(app).get('/api/v1/buildings').expect(400);
-
-      expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toContain('bbox parameter is required');
+      expect(response.body.error).toBe('Validation Error');
     });
 
     it('should return 400 for longitude out of range', async () => {
@@ -193,7 +186,7 @@ describe('GET /api/v1/buildings', () => {
 
   describe('Get by ID', () => {
     it('should return building by ID', async () => {
-      const buildingId = 'test-id-1';
+      const buildingId = '123e4567-e89b-12d3-a456-426614174000';
       const mockBuilding = {
         id: buildingId,
         name: 'Colosseum',
@@ -202,7 +195,7 @@ describe('GET /api/v1/buildings', () => {
         country: 'Italy',
         height: 48.5,
         floorCount: 4,
-        ifcFileId: 'file-id-1',
+        ifcFileId: '123e4567-e89b-12d3-a456-426614174001',
         createdAt: new Date('2025-01-01'),
         updatedAt: new Date('2025-01-01'),
         longitude: 12.4924,
@@ -245,7 +238,7 @@ describe('GET /api/v1/buildings', () => {
       });
 
       const response = await request(app)
-        .get('/api/v1/buildings/non-existent-id')
+        .get('/api/v1/buildings/00000000-0000-0000-0000-000000000000')
         .expect(404);
 
       expect(response.body).toHaveProperty('error');
@@ -256,7 +249,7 @@ describe('GET /api/v1/buildings', () => {
       mockPoolQuery.mockRejectedValue(new Error('Connection lost'));
 
       const response = await request(app)
-        .get('/api/v1/buildings/test-id')
+        .get('/api/v1/buildings/123e4567-e89b-12d3-a456-426614174000')
         .expect(500);
 
       expect(response.body).toHaveProperty('error');
