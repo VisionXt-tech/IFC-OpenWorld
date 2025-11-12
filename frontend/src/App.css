@@ -279,6 +279,41 @@
   outline-offset: 3px;
 }
 
+/* Toggle 3D button (floating action button) */
+.toggle-3d-button {
+  position: absolute;
+  top: 230px;
+  right: 20px;
+  z-index: 1000;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-3d-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(46, 204, 113, 0.6);
+}
+
+.toggle-3d-button:active {
+  transform: translateY(0);
+}
+
+.toggle-3d-button:focus-visible {
+  outline: 3px solid #2ecc71;
+  outline-offset: 3px;
+}
+
 /* Light mode adjustments */
 @media (prefers-color-scheme: light) {
   .close-upload-button {
@@ -315,6 +350,13 @@
 
   .open-manager-button {
     top: 135px;
+    right: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .toggle-3d-button {
+    top: 185px;
     right: 10px;
     padding: 0.75rem 1rem;
     font-size: 0.9rem;

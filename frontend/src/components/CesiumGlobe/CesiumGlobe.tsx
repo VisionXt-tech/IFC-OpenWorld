@@ -29,6 +29,11 @@ export interface CesiumGlobeProps {
    * Provides the building ID for showing InfoPanel
    */
   onBuildingClick?: (buildingId: string) => void;
+  /**
+   * Show 3D models instead of 2D markers
+   * Default: false (2D markers)
+   */
+  show3DModels?: boolean;
 }
 
 /**
@@ -56,7 +61,8 @@ export function flyToLocation(
 function CesiumGlobe({
   onReady,
   onError,
-  onBuildingClick
+  onBuildingClick,
+  show3DModels = false,
 }: CesiumGlobeProps) {
   const cesiumContainer = useRef<HTMLDivElement>(null);
   const viewer = useRef<Cesium.Viewer | null>(null);
@@ -164,32 +170,107 @@ function CesiumGlobe({
     // Clear existing entities
     viewer.current.entities.removeAll();
 
-    // Add each building as a marker
+    // Add each building as marker or 3D model
     buildings.forEach((buildingFeature) => {
       const { geometry, properties } = buildingFeature;
       const [longitude, latitude] = geometry.coordinates;
 
-      viewer.current!.entities.add({
-        id: buildingFeature.id,
-        name: properties.name,
-        position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
-        point: {
-          pixelSize: 15,
-          color: Cesium.Color.RED,
-          outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 2,
-        },
-        label: {
-          text: properties.name,
-          font: '14px sans-serif',
-          fillColor: Cesium.Color.WHITE,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 2,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new Cesium.Cartesian2(0, -20),
-        },
-      });
+      // Check if 3D model is available and user wants 3D view
+      const has3DModel = !!properties.modelUrl;
+      const use3D = show3DModels && has3DModel;
+
+      if (use3D) {
+        // Load 3D model (glTF/glB)
+        console.log(`[CesiumGlobe] Loading 3D model for ${properties.name}:`, properties.modelUrl);
+
+        try {
+          // Calculate height offset - position model at ground level or use building height if available
+          const heightOffset = 0; // Models should be at ground level
+
+          // Create entity with 3D model
+          const entity = viewer.current!.entities.add({
+            id: buildingFeature.id,
+            name: properties.name,
+            position: Cesium.Cartesian3.fromDegrees(longitude, latitude, heightOffset),
+            model: {
+              uri: `${config.api.baseURL}${properties.modelUrl}`,
+              minimumPixelSize: 64, // Reduced from 128 for better performance
+              maximumScale: 20000,
+              scale: 1.0,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, // Clamp to terrain
+              silhouetteColor: Cesium.Color.fromCssColorString('#00bcd4'),
+              silhouetteSize: 0, // No silhouette by default
+            },
+            label: {
+              text: properties.name,
+              font: '14px sans-serif',
+              fillColor: Cesium.Color.WHITE,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 2,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              pixelOffset: new Cesium.Cartesian2(0, -60), // Increased offset for 3D models
+              showBackground: true,
+              backgroundColor: new Cesium.Color(0, 0, 0, 0.7),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY, // Always show label
+            },
+          });
+
+          // Add silhouette on hover (for better visibility)
+          entity.model!.silhouetteSize = new Cesium.ConstantProperty(2);
+
+          console.log(`[CesiumGlobe] 3D model loaded successfully for ${properties.name}`);
+        } catch (error) {
+          console.error(`[CesiumGlobe] Error loading 3D model for ${properties.name}:`, error);
+          console.warn(`[CesiumGlobe] Falling back to 2D marker for ${properties.name}`);
+
+          // Fallback to 2D marker on error
+          viewer.current!.entities.add({
+            id: buildingFeature.id,
+            name: properties.name,
+            position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+            point: {
+              pixelSize: 15,
+              color: Cesium.Color.ORANGE, // Orange for fallback markers
+              outlineColor: Cesium.Color.WHITE,
+              outlineWidth: 2,
+            },
+            label: {
+              text: `${properties.name} (3D load failed)`,
+              font: '14px sans-serif',
+              fillColor: Cesium.Color.WHITE,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 2,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              pixelOffset: new Cesium.Cartesian2(0, -20),
+            },
+          });
+        }
+      } else {
+        // Show 2D marker (default or fallback)
+        viewer.current!.entities.add({
+          id: buildingFeature.id,
+          name: properties.name,
+          position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+          point: {
+            pixelSize: 15,
+            color: Cesium.Color.RED,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
+          },
+          label: {
+            text: properties.name,
+            font: '14px sans-serif',
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -20),
+          },
+        });
+      }
     });
 
     console.log(`[CesiumGlobe] Added ${buildings.length} markers`);

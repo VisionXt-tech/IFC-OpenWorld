@@ -47,57 +47,35 @@ class GLTFConverter:
 
             # Determine output path
             if output_path is None:
+                # Create temp directory if it doesn't exist
+                temp_dir = "/tmp/ifc_processing"
+                os.makedirs(temp_dir, exist_ok=True)
+
                 # Create temp file with .glb extension (binary glTF)
                 temp_file = tempfile.NamedTemporaryFile(
-                    suffix=".glb", delete=False, dir="/tmp/ifc_processing"
+                    suffix=".glb", delete=False, dir=temp_dir
                 )
                 output_path = temp_file.name
                 temp_file.close()
 
             self.logger.info(f"Converting to glTF: {output_path}")
 
-            # Use IfcOpenShell geometry engine to extract geometry
-            settings = ifcopenshell.geom.settings()
-            settings.set(settings.USE_WORLD_COORDS, True)
-            settings.set(settings.WELD_VERTICES, True)
-            settings.set(settings.SEW_SHELLS, True)
+            # Use IfcConvert command-line tool directly (most reliable method)
+            # IfcConvert is bundled with IfcOpenShell and handles glTF conversion natively
+            self.logger.info("Using IfcConvert command-line tool")
+            success = self._use_ifcconvert(ifc_file_path, output_path)
 
-            # Try using ifcopenshell's built-in glTF export if available
-            # Otherwise, we'll use alternative method
-            try:
-                # Method 1: Direct glTF export (if supported by version)
-                import ifcopenshell.geom.main
-
-                # This is a placeholder - actual implementation depends on IfcOpenShell version
-                # For now, we'll use geometry extraction and manual glTF creation
-                self.logger.info("Using geometry extraction method")
-                success = self._convert_via_geometry_extraction(
-                    ifc_file, output_path, settings
-                )
-
-                if success:
-                    return True, output_path, None
-                else:
-                    return False, None, "Geometry extraction failed"
-
-            except Exception as e:
-                self.logger.warning(f"Direct export not available: {e}")
-                # Fallback to geometry extraction
-                success = self._convert_via_geometry_extraction(
-                    ifc_file, output_path, settings
-                )
-
-                if success:
-                    return True, output_path, None
-                else:
-                    return False, None, f"Conversion failed: {str(e)}"
+            if success:
+                return True, output_path, None
+            else:
+                return False, None, "IfcConvert failed"
 
         except Exception as e:
             self.logger.error(f"Error converting IFC to glTF: {str(e)}")
             return False, None, str(e)
 
     def _convert_via_geometry_extraction(
-        self, ifc_file, output_path: str, settings
+        self, ifc_file, output_path: str, settings, ifc_file_path: str
     ) -> bool:
         """
         Convert IFC to glTF by extracting geometry and creating glTF manually
@@ -122,7 +100,7 @@ class GLTFConverter:
             self.logger.info(f"Extracting geometry for {len(products)} products")
 
             # Use IfcConvert command-line tool (most reliable method)
-            result = self._use_ifcconvert(output_path.replace(".glb", ""), output_path)
+            result = self._use_ifcconvert(ifc_file_path, output_path)
 
             return result
 

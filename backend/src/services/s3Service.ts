@@ -172,6 +172,89 @@ export class S3Service {
   getPublicUrl(key: string): string {
     return `${config.s3.endpoint}/${this.bucketName}/${key}`;
   }
+
+  /**
+   * Download file from S3 and return as Node.js stream
+   * @param key - S3 object key
+   * @returns Node.js Readable stream of the file
+   * @throws AppError if download fails
+   */
+  async downloadFile(key: string): Promise<NodeJS.ReadableStream> {
+    try {
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const { Readable } = await import('stream');
+
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      const response = await this.s3Client.send(command);
+
+      if (!response.Body) {
+        throw new AppError(500, 'Empty response body from S3');
+      }
+
+      logger.info('File downloaded from S3', {
+        key,
+        bucket: this.bucketName,
+      });
+
+      // Convert AWS SDK stream to Node.js Readable stream
+      return response.Body as NodeJS.ReadableStream;
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'name' in error) {
+        const err = error as { name: string };
+        if (err.name === 'NoSuchKey' || err.name === 'NotFound') {
+          throw new AppError(404, 'File not found');
+        }
+      }
+
+      logger.error('Failed to download file from S3', {
+        key,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new AppError(500, 'Failed to download file from storage');
+    }
+  }
+
+  /**
+   * Get file metadata from S3
+   * @param key - S3 object key
+   * @returns File metadata including content type and size
+   * @throws AppError if metadata retrieval fails
+   */
+  async getFileMetadata(key: string): Promise<{ contentType: string; contentLength: number }> {
+    try {
+      const { HeadObjectCommand } = await import('@aws-sdk/client-s3');
+      const command = new HeadObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      const response = await this.s3Client.send(command);
+
+      return {
+        contentType: response.ContentType || 'application/octet-stream',
+        contentLength: response.ContentLength || 0,
+      };
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'name' in error) {
+        const err = error as { name: string };
+        if (err.name === 'NoSuchKey' || err.name === 'NotFound') {
+          throw new AppError(404, 'File not found');
+        }
+      }
+
+      logger.error('Failed to get file metadata from S3', {
+        key,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new AppError(500, 'Failed to get file metadata');
+    }
+  }
 }
 
 // Singleton instance

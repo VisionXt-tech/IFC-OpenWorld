@@ -205,6 +205,11 @@ export class BuildingService {
           ifcFileId: building.ifcFileId,
           createdAt: building.createdAt.toISOString(),
           updatedAt: building.updatedAt.toISOString(),
+          // 3D Model fields
+          modelUrl: building.modelUrl || null,
+          modelSizeMb: building.modelSizeMb || null,
+          modelFormat: building.modelFormat || null,
+          modelGeneratedAt: building.modelGeneratedAt ? building.modelGeneratedAt.toISOString() : null,
         },
       }));
 
@@ -299,6 +304,11 @@ export class BuildingService {
           ifcFileId: building.ifcFileId,
           createdAt: building.createdAt.toISOString(),
           updatedAt: building.updatedAt.toISOString(),
+          // 3D Model fields
+          modelUrl: building.modelUrl || null,
+          modelSizeMb: building.modelSizeMb || null,
+          modelFormat: building.modelFormat || null,
+          modelGeneratedAt: building.modelGeneratedAt ? building.modelGeneratedAt.toISOString() : null,
         },
       };
     } catch (error) {
@@ -361,3 +371,4 @@ export class BuildingService {
 
 // Singleton instance
 export const buildingService = new BuildingService();
+ 

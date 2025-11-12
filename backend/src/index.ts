@@ -13,6 +13,7 @@ import { globalRateLimiter, uploadRateLimiter } from './middleware/rateLimit.js'
 import { healthRouter } from './api/v1/health.js';
 import { uploadRouter } from './api/v1/upload.js';
 import { buildingsRouter } from './api/v1/buildings.js';
+import { modelsRouter } from './api/v1/models.js';
 
 const app: Express = express();
 
@@ -34,6 +35,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/health', healthRouter);
 app.use('/api/v1/upload', uploadRateLimiter, uploadRouter);
 app.use('/api/v1/buildings', buildingsRouter);
+
+// Static file routes (3D models)
+app.use('/models', modelsRouter);
 
 // Error handling (must be last)
 app.use(errorHandler);

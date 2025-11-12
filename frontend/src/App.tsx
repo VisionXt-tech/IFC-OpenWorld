@@ -13,6 +13,7 @@ function App() {
   const [showUploadZone, setShowUploadZone] = useState(false); // Start closed to allow free navigation
   const [showBuildingsManager, setShowBuildingsManager] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [show3DModels, setShow3DModels] = useState(false); // Toggle between 2D markers and 3D models
   const viewerRef = useRef<Viewer | null>(null);
 
   // Zustand stores
@@ -157,6 +158,7 @@ function App() {
         onReady={handleGlobeReady}
         onError={handleGlobeError}
         onBuildingClick={handleBuildingClick}
+        show3DModels={show3DModels}
       />
 
       {showUploadZone && (
@@ -199,6 +201,17 @@ function App() {
           type="button"
         >
           🏗️ Manage Buildings
+        </button>
+      )}
+
+      {!showUploadZone && (
+        <button
+          className="toggle-3d-button"
+          onClick={() => setShow3DModels(!show3DModels)}
+          aria-label={show3DModels ? 'Switch to 2D markers' : 'Switch to 3D models'}
+          type="button"
+        >
+          {show3DModels ? '📍 2D View' : '🏢 3D View'}
         </button>
       )}
 
