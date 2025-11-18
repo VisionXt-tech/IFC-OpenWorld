@@ -4,12 +4,18 @@ import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
 import UploadZone from '@/components/UploadZone';
 import BuildingsManager from '@/components/BuildingsManager';
 import InfoPanel from '@/components/InfoPanel';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useUploadStore, useBuildingsStore } from '@/store';
 import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/utils/logger';
+import { useWebVitals, useRenderTime } from '@/hooks/usePerformance';
 import './App.css';
 
 function App() {
+  // Performance monitoring
+  useWebVitals();
+  useRenderTime('App');
+
   const [globeReady, setGlobeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUploadZone, setShowUploadZone] = useState(false); // Start closed to allow free navigation
@@ -176,10 +182,17 @@ function App() {
   return (
     <div className="app">
       <header className="app-header-overlay">
-        <h1>IFC OpenWorld</h1>
-        <p className="status">
-          {globeReady ? '✅ Globe Ready' : '⏳ Loading Globe...'}
-        </p>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>IFC OpenWorld</h1>
+            <p className="status">
+              {globeReady ? '✅ Globe Ready' : '⏳ Loading Globe...'}
+            </p>
+          </div>
+          <div className="header-right">
+            <ThemeToggle />
+          </div>
+        </div>
       </header>
 
       <CesiumGlobe

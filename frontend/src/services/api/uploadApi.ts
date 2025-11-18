@@ -37,12 +37,14 @@ export async function requestUploadUrl(
 /**
  * Step 2: Upload file directly to S3 using presigned URL
  * Returns upload progress via onProgress callback
+ * Supports cancellation via AbortSignal
  */
 export async function uploadToS3(
   presignedUrl: string,
   file: File,
   onProgress?: (progress: number) => void,
-  contentType?: string
+  contentType?: string,
+  signal?: AbortSignal
 ): Promise<void> {
   logger.debug('[UploadAPI] Starting S3 upload:', {
     url: presignedUrl,
@@ -52,6 +54,19 @@ export async function uploadToS3(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+
+    // Handle abort signal
+    if (signal) {
+      if (signal.aborted) {
+        reject(new Error('Upload cancelled before start'));
+        return;
+      }
+
+      signal.addEventListener('abort', () => {
+        logger.debug('[UploadAPI] Aborting XHR upload...');
+        xhr.abort();
+      });
+    }
 
     // Track upload progress
     xhr.upload.addEventListener('progress', (event) => {
@@ -141,10 +156,12 @@ export async function getProcessingStatus(taskId: string): Promise<ProcessingSta
 
 /**
  * Complete upload workflow (all 4 steps)
+ * Supports cancellation via AbortSignal
  */
 export async function uploadIFCFile(
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  signal?: AbortSignal
 ): Promise<{ taskId: string; fileId: string }> {
   // Step 1: Request presigned URL
   // Use application/x-step as default MIME type for IFC files (STEP format)
@@ -165,8 +182,8 @@ export async function uploadIFCFile(
     contentType,
   });
 
-  // Step 2: Upload to S3 with same content type
-  await uploadToS3(presignedUrl, file, onProgress, contentType);
+  // Step 2: Upload to S3 with same content type and abort signal
+  await uploadToS3(presignedUrl, file, onProgress, contentType, signal);
 
   logger.debug('[UploadAPI] S3 upload complete');
 
