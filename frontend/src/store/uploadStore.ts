@@ -19,6 +19,7 @@ interface UploadStore {
   fileId: string | null;
   processingResult: ProcessingStatusResponse['result'] | null;
   pollingTimeoutId: NodeJS.Timeout | null; // BUGFIX: Track timeout to prevent race conditions
+  abortController: AbortController | null; // Upload cancellation controller
 
   // Actions
   startUpload: (file: File) => Promise<void>;
@@ -29,7 +30,7 @@ interface UploadStore {
 
 const initialState: Pick<
   UploadStore,
-  'uploadStatus' | 'taskId' | 'fileId' | 'processingResult' | 'pollingTimeoutId'
+  'uploadStatus' | 'taskId' | 'fileId' | 'processingResult' | 'pollingTimeoutId' | 'abortController'
 > = {
   uploadStatus: {
     status: 'idle',
@@ -43,15 +44,20 @@ const initialState: Pick<
   fileId: null,
   processingResult: null,
   pollingTimeoutId: null,
+  abortController: null,
 };
 
 export const useUploadStore = create<UploadStore>((set, get) => ({
   ...initialState,
 
   startUpload: async (file: File) => {
+    // Create AbortController for cancellation
+    const abortController = new AbortController();
+
     // Reset previous state
     set({
       ...initialState,
+      abortController,
       uploadStatus: {
         status: 'uploading',
         progress: 0,
@@ -63,15 +69,19 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
     });
 
     try {
-      // Upload file with progress tracking
-      const { taskId, fileId } = await uploadIFCFile(file, (progress) => {
-        set((state) => ({
-          uploadStatus: {
-            ...state.uploadStatus,
-            progress,
-          },
-        }));
-      });
+      // Upload file with progress tracking and abort signal
+      const { taskId, fileId } = await uploadIFCFile(
+        file,
+        (progress) => {
+          set((state) => ({
+            uploadStatus: {
+              ...state.uploadStatus,
+              progress,
+            },
+          }));
+        },
+        abortController.signal
+      );
 
       // Upload complete, start processing
       set({
@@ -108,13 +118,19 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
   },
 
   cancelUpload: () => {
-    // BUGFIX: Clear polling timeout to prevent race conditions
     const state = get();
+
+    // Abort ongoing upload if any
+    if (state.abortController) {
+      logger.debug('[UploadStore] Aborting upload...');
+      state.abortController.abort();
+    }
+
+    // Clear polling timeout to prevent race conditions
     if (state.pollingTimeoutId) {
       clearTimeout(state.pollingTimeoutId);
     }
 
-    // TODO: Implement actual cancellation (abort XHR request)
     set({
       uploadStatus: {
         ...get().uploadStatus,
@@ -123,7 +139,10 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         error: 'Upload cancelled by user',
       },
       pollingTimeoutId: null,
+      abortController: null,
     });
+
+    logger.info('[UploadStore] Upload cancelled successfully');
   },
 
   pollProcessingStatus: async () => {
