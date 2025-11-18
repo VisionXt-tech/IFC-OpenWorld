@@ -121,7 +121,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
         logger.debug(`[BuildingsManager] Deleted ${succeeded.length} building(s)`);
       } else if (succeeded.length === 0) {
         // Get error from first failed result for better message
-        const firstError = failed[0].status === 'rejected' ? failed[0].reason : undefined;
+        const firstError = failed[0] && failed[0].status === 'rejected' ? failed[0].reason : undefined;
         const message = getDeletionErrorMessage(count, firstError?.message);
         setError(message);
         showError(message);

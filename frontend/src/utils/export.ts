@@ -36,7 +36,7 @@ export function exportCSV<T extends Record<string, unknown>>(
     }
 
     // Determine columns
-    const cols = columns || Object.keys(data[0]).map((key) => ({ key: key as keyof T, label: key }));
+    const cols = columns || Object.keys(data[0] ?? {}).map((key) => ({ key: key as keyof T, label: key }));
 
     // Create header row
     const header = cols.map((col) => escapeCsvValue(col.label)).join(',');
@@ -229,7 +229,7 @@ export function exportBuildingsCSV(
       country: string | null;
       height: number | null;
       floorCount: number | null;
-      modelUrl: string | null;
+      modelUrl?: string | null;
     };
     geometry: {
       coordinates: [number, number];
