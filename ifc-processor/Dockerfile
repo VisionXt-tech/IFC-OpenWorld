@@ -23,7 +23,7 @@ WORKDIR /app
 
 # Copy requirements and install Python dependencies (excluding ifcopenshell, already installed via conda)
 COPY requirements.txt .
-RUN pip install --no-cache-dir $(grep -v "^ifcopenshell" requirements.txt)
+RUN grep -v "^ifcopenshell" requirements.txt | sed 's/#.*//' | sed 's/^[[:space:]]*$//' | grep -v "^$" | xargs -r pip install --no-cache-dir
 
 # Copy application code
 COPY . .

@@ -87,6 +87,36 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
+# Ensure script runs from its own directory (handles WSL invoked from PowerShell)
+# If the script is executed while the current working directory is different
+# (WSL defaulting to the Linux home), switch to the script's directory or
+# a parent that contains `docker-compose.yml`.
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}" 2>/dev/null || readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s\n' "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd || printf '%s\n' ".")"
+if [ -n "$SCRIPT_DIR" ]; then
+    if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+        print_step "Switching to script directory: $SCRIPT_DIR"
+        cd "$SCRIPT_DIR"
+    else
+        # Try searching up a few parent directories for docker-compose.yml
+        SEARCH_DIR="$SCRIPT_DIR"
+        FOUND=""
+        for i in 1 2 3 4 5; do
+            if [ -f "$SEARCH_DIR/docker-compose.yml" ]; then
+                FOUND="$SEARCH_DIR"
+                break
+            fi
+            SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+        done
+        if [ -n "$FOUND" ]; then
+            print_step "Found docker-compose.yml in parent: $FOUND"
+            cd "$FOUND"
+        else
+            print_warning "docker-compose.yml not found in script dir; will check current directory."
+        fi
+    fi
+fi
+
 # Check if Docker is running
 print_step "Checking Docker..."
 if ! docker info > /dev/null 2>&1; then
