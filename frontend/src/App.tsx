@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { Viewer } from 'cesium';
 import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
 import UploadZone from '@/components/UploadZone';
@@ -7,6 +7,7 @@ import InfoPanel from '@/components/InfoPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useUploadStore, useBuildingsStore } from '@/store';
 import { useToast } from '@/contexts/ToastContext';
+import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
 import { logger } from '@/utils/logger';
 import { useWebVitals, useRenderTime } from '@/hooks/usePerformance';
 import './App.css';
@@ -30,8 +31,11 @@ function App() {
   const { buildings, fetchBuildings } = useBuildingsStore();
   const { info, warning } = useToast();
 
-  // Calculate how many buildings have 3D models
-  const buildingsWithModels = buildings.filter(b => b.properties.modelUrl).length;
+  // Calculate how many buildings have 3D models (memoized for performance)
+  const buildingsWithModels = useMemo(
+    () => buildings.filter((b) => b.properties.modelUrl).length,
+    [buildings]
+  );
 
   // PERFORMANCE: Memoize callbacks to prevent unnecessary re-renders
   const handleGlobeReady = useCallback((viewer: Viewer) => {
@@ -89,30 +93,61 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globeReady]);
 
-  // Keyboard navigation: Escape to close panels
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        // Close upload zone if open
+  // Keyboard Shortcuts - Centralized with useKeyboardShortcut
+  // Escape: Close any open panel
+  useKeyboardShortcut(
+    'app.closePanel',
+    {
+      key: 'Escape',
+      description: 'Close open panels',
+      handler: () => {
         if (showUploadZone) {
           setShowUploadZone(false);
-        }
-        // Close buildings manager if open
-        if (showBuildingsManager) {
+        } else if (showBuildingsManager) {
           setShowBuildingsManager(false);
-        }
-        // Close info panel if open
-        if (selectedBuildingId) {
+        } else if (selectedBuildingId) {
           setSelectedBuildingId(null);
         }
-      }
-    };
+      },
+    },
+    [showUploadZone, showBuildingsManager, selectedBuildingId]
+  );
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showUploadZone, showBuildingsManager, selectedBuildingId]);
+  // U: Toggle upload zone
+  useKeyboardShortcut(
+    'app.toggleUpload',
+    {
+      key: 'u',
+      description: 'Toggle upload panel',
+      handler: () => setShowUploadZone((prev) => !prev),
+    },
+    []
+  );
+
+  // B: Toggle buildings manager
+  useKeyboardShortcut(
+    'app.toggleBuildings',
+    {
+      key: 'b',
+      description: 'Toggle buildings manager',
+      handler: () => setShowBuildingsManager((prev) => !prev),
+    },
+    []
+  );
+
+  // M: Toggle 3D models
+  useKeyboardShortcut(
+    'app.toggle3D',
+    {
+      key: 'm',
+      description: 'Toggle 3D models',
+      handler: () => {
+        setShow3DModels((prev) => !prev);
+        info(show3DModels ? '2D markers enabled' : '3D models enabled');
+      },
+    },
+    [show3DModels, info]
+  );
 
   // Watch for successful upload
   // BUGFIX: Handle promises properly
@@ -294,6 +329,12 @@ function App() {
       {selectedBuilding && (
         <InfoPanel building={selectedBuilding} onClose={handleCloseInfoPanel} />
       )}
+
+      {/* Keyboard Shortcuts Help Modal */}
+      <KeyboardShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
+      />
     </div>
   );
 }

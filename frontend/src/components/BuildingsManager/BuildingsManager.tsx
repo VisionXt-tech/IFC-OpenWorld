@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useBuildingsStore } from '@/store';
 import { sanitizeBuildingName } from '@/utils/sanitize';
 import { useToast } from '@/contexts/ToastContext';
 import { deleteBuilding } from '@/services/api/buildingsApi';
 import { ConfirmDialog } from '@/components/Modal';
 import { SearchBar } from './SearchBar';
+import { Pagination } from './Pagination';
+import { BuildingListSkeleton } from '@/components/LoadingSkeleton';
 import { useAdvancedSearch, type FilterCondition } from '@/utils/search';
 import { exportBuildingsCSV, exportJSON } from '@/utils/export';
+import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
 import { logger } from '@/utils/logger';
 import './BuildingsManager.css';
 
@@ -28,7 +31,7 @@ export interface BuildingsManagerProps {
 }
 
 function BuildingsManager({ onClose }: BuildingsManagerProps) {
-  const { buildings, fetchBuildings } = useBuildingsStore();
+  const { buildings, isLoading, fetchBuildings } = useBuildingsStore();
   const { success, error: showError, warning } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -46,20 +49,6 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
 
   // Use filtered results
   const displayedBuildings = search.result.items;
-
-  // Keyboard navigation: Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
 
   const handleSelectAll = () => {
     if (selectedIds.size === buildings.length) {
@@ -155,6 +144,63 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     }
   };
 
+  // Keyboard Shortcuts - Centralized
+  // Escape: Close manager (handled by parent App, but registered here for documentation)
+  useKeyboardShortcut(
+    'buildingsManager.close',
+    {
+      key: 'Escape',
+      description: 'Close buildings manager',
+      handler: onClose,
+    },
+    [onClose]
+  );
+
+  // Ctrl+A: Select all
+  useKeyboardShortcut(
+    'buildingsManager.selectAll',
+    {
+      key: 'a',
+      ctrl: true,
+      description: 'Select all buildings',
+      preventDefault: true,
+      handler: handleSelectAll,
+    },
+    [buildings.length, selectedIds.size]
+  );
+
+  // Delete: Delete selected
+  useKeyboardShortcut(
+    'buildingsManager.delete',
+    {
+      key: 'Delete',
+      description: 'Delete selected buildings',
+      handler: () => {
+        if (selectedIds.size > 0 && !deleting) {
+          handleDeleteSelected();
+        }
+      },
+    },
+    [selectedIds.size, deleting]
+  );
+
+  // Ctrl+E: Export CSV
+  useKeyboardShortcut(
+    'buildingsManager.export',
+    {
+      key: 'e',
+      ctrl: true,
+      description: 'Export buildings to CSV',
+      preventDefault: true,
+      handler: () => {
+        if (displayedBuildings.length > 0) {
+          handleExportCSV();
+        }
+      },
+    },
+    [displayedBuildings.length]
+  );
+
   return (
     <div className="buildings-manager-overlay" onClick={onClose}>
       <div
@@ -163,9 +209,17 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
           e.stopPropagation();
         }}
       >
+        {/* ARIA Live Regions for screen readers */}
+        <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {selectedIds.size > 0 && `${selectedIds.size} of ${buildings.length} buildings selected`}
+        </div>
+        <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {!isLoading && displayedBuildings.length > 0 && `Showing ${search.result.items.length} of ${search.result.total} buildings`}
+        </div>
+
         <div className="manager-header">
-          <h2>🏗️ Buildings Manager</h2>
-          <button className="close-button" onClick={onClose} aria-label="Close">
+          <h2 id="buildings-manager-title">🏗️ Buildings Manager</h2>
+          <button className="close-button" onClick={onClose} aria-label="Close buildings manager">
             ✕
           </button>
         </div>
@@ -217,7 +271,9 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
         )}
 
         <div className="buildings-list">
-          {buildings.length === 0 ? (
+          {isLoading ? (
+            <BuildingListSkeleton count={5} />
+          ) : buildings.length === 0 ? (
             <div className="empty-state">
               <p>📭 No buildings in database</p>
               <p className="hint">Upload an IFC file to add a building</p>
@@ -284,6 +340,20 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {!isLoading && displayedBuildings.length > 0 && (
+          <Pagination
+            currentPage={search.pagination.page}
+            totalPages={search.result.totalPages}
+            pageSize={search.pagination.pageSize}
+            total={search.result.total}
+            hasNextPage={search.result.hasNextPage}
+            hasPrevPage={search.result.hasPrevPage}
+            onPageChange={search.setPage}
+            onPageSizeChange={search.setPageSize}
+          />
+        )}
       </div>
 
       {/* Confirm Delete Dialog */}
