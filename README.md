@@ -41,6 +41,31 @@ yarn build         # instead of npm run build
 
 ## 🚀 Quick Start
 
+### ⚡ One-Command Setup (Recommended)
+
+Start the entire development environment instantly:
+
+```bash
+./start-dev.sh
+```
+
+This single command will:
+- ✅ Start Docker services (PostgreSQL, Redis, MinIO, IFC Processor)
+- ✅ Auto-install dependencies if needed
+- ✅ Start Backend API (http://localhost:3001)
+- ✅ Start Frontend dev server (http://localhost:5173)
+- ✅ Show combined real-time logs
+
+**Stop everything**: Press `Ctrl+C` or run `./stop-dev.sh`
+
+📖 **See [QUICK_START.md](./QUICK_START.md) for detailed guide**
+
+---
+
+## 🛠️ Manual Setup
+
+If you prefer step-by-step setup:
+
 ### Prerequisites
 
 - **Node.js** 20.10.0 LTS or higher
