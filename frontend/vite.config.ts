@@ -34,8 +34,36 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom']
+        manualChunks: (id) => {
+          // React core (stable, rarely changes)
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+
+          // Cesium (huge library ~10MB, separate chunk)
+          if (id.includes('node_modules/cesium') || id.includes('node_modules/@cesium')) {
+            return 'cesium-vendor';
+          }
+
+          // Utility libraries (DOMPurify, etc.)
+          if (id.includes('node_modules/dompurify')) {
+            return 'utils-vendor';
+          }
+
+          // State management (Zustand)
+          if (id.includes('node_modules/zustand')) {
+            return 'state-vendor';
+          }
+
+          // File upload libraries (react-dropzone)
+          if (id.includes('node_modules/react-dropzone') || id.includes('node_modules/file-selector')) {
+            return 'upload-vendor';
+          }
+
+          // All other node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         }
       }
     }
