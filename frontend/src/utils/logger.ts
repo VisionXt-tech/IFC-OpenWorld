@@ -11,7 +11,7 @@ class Logger {
   private isDebug: boolean;
 
   constructor() {
-    this.isDebug = config.features.debug || import.meta.env.MODE === 'development';
+    this.isDebug = config.features.debug || import.meta.env.DEV;
   }
 
   debug(...args: unknown[]): void {

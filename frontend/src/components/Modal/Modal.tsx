@@ -8,6 +8,7 @@
 import { useEffect, useRef, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
+import { createFocusTrap } from '@/utils/focusTrap';
 import './Modal.css';
 
 export interface ModalProps {
@@ -53,28 +54,36 @@ export function Modal({
     [isOpen, closeOnEscape]
   );
 
-  // Focus management
+  // Focus management with focus trap
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && modalRef.current) {
       // Save currently focused element
       previousActiveElement.current = document.activeElement as HTMLElement;
 
-      // Focus modal
-      modalRef.current?.focus();
-
       // Prevent body scroll
       document.body.style.overflow = 'hidden';
-    } else {
-      // Restore focus
-      previousActiveElement.current?.focus();
 
+      // Create focus trap
+      const cleanup = createFocusTrap(modalRef.current);
+
+      return () => {
+        // Restore focus
+        previousActiveElement.current?.focus();
+
+        // Restore body scroll
+        document.body.style.overflow = '';
+
+        // Cleanup focus trap
+        cleanup();
+      };
+    } else {
       // Restore body scroll
       document.body.style.overflow = '';
-    }
 
-    return () => {
-      document.body.style.overflow = '';
-    };
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
   }, [isOpen]);
 
   // Handle backdrop click

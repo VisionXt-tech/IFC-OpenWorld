@@ -167,7 +167,7 @@ export function applyFilter<T>(value: unknown, condition: FilterCondition<T>): b
 /**
  * Filter array by conditions
  */
-export function filterData<T extends Record<string, unknown>>(
+export function filterData<T extends object>(
   data: T[],
   conditions: FilterCondition[]
 ): T[] {
@@ -175,7 +175,7 @@ export function filterData<T extends Record<string, unknown>>(
 
   return data.filter((item) => {
     return conditions.every((condition) => {
-      const value = item[condition.field];
+      const value = (item as any)[condition.field];
       return applyFilter(value, condition);
     });
   });
@@ -184,12 +184,12 @@ export function filterData<T extends Record<string, unknown>>(
 /**
  * Sort array
  */
-export function sortData<T extends Record<string, unknown>>(data: T[], sort: SortConfig): T[] {
+export function sortData<T extends object>(data: T[], sort: SortConfig): T[] {
   if (!sort.field) return data;
 
   return [...data].sort((a, b) => {
-    const aVal = a[sort.field];
-    const bVal = b[sort.field];
+    const aVal = (a as any)[sort.field];
+    const bVal = (b as any)[sort.field];
 
     // Handle null/undefined
     if (aVal === null || aVal === undefined) return 1;
@@ -263,7 +263,7 @@ function similarityScore(str1: string, str2: string): number {
 /**
  * Search data with text query
  */
-export function searchData<T extends Record<string, unknown>>(
+export function searchData<T extends object>(
   data: T[],
   query: string,
   options: SearchOptions = {}
@@ -275,10 +275,10 @@ export function searchData<T extends Record<string, unknown>>(
   const searchQuery = caseSensitive ? query : query.toLowerCase();
 
   return data.filter((item) => {
-    const fieldsToSearch = fields || Object.keys(item);
+    const fieldsToSearch = fields || Object.keys(item as any);
 
     return fieldsToSearch.some((field) => {
-      const value = item[field];
+      const value = (item as any)[field];
       if (value === null || value === undefined) return false;
 
       const strValue = caseSensitive ? String(value) : String(value).toLowerCase();
@@ -318,7 +318,7 @@ export function paginateData<T>(data: T[], pagination: PaginationConfig): Search
 /**
  * Advanced search hook
  */
-export function useAdvancedSearch<T extends Record<string, unknown>>(
+export function useAdvancedSearch<T extends object>(
   data: T[],
   options: {
     defaultSort?: SortConfig;

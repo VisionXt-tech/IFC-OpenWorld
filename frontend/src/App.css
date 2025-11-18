@@ -1,5 +1,28 @@
 @import './styles/design-tokens.css';
 
+/* Skip links for keyboard accessibility */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: var(--color-background-overlay);
+  color: var(--color-text-primary);
+  padding: var(--spacing-3) var(--spacing-4);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  z-index: var(--z-index-modal);
+  transition: top var(--transition-fast) var(--transition-easing-smooth);
+}
+
+.skip-link:focus {
+  top: var(--spacing-3);
+  left: var(--spacing-3);
+  box-shadow: var(--shadow-elevated-lg);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .app {
   position: relative;
   width: 100vw;
@@ -9,6 +32,12 @@
   overflow: hidden;
   font-family: var(--font-family-base);
   background: var(--color-background);
+}
+
+/* Semantic main element */
+main#main-content {
+  width: 100%;
+  height: 100%;
 }
 
 /* Overlay header - Professional design */
