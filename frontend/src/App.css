@@ -26,6 +26,23 @@
   animation: fadeIn var(--transition-base) var(--transition-easing-smooth);
 }
 
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-6);
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
 .app-header-overlay h1 {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);

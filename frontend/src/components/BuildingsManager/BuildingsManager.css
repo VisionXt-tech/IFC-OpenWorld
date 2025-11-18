@@ -84,6 +84,36 @@
   gap: 1rem;
 }
 
+.action-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.export-button {
+  padding: 0.5rem 1rem;
+  background-color: rgba(72, 187, 120, 0.2);
+  border: 1px solid rgba(72, 187, 120, 0.5);
+  color: #48bb78;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.export-button:hover:not(:disabled) {
+  background-color: rgba(72, 187, 120, 0.3);
+  border-color: #48bb78;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.export-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .select-all-button {
   padding: 0.5rem 1rem;
   background-color: rgba(100, 108, 255, 0.2);

@@ -3,6 +3,10 @@ import { useBuildingsStore } from '@/store';
 import { sanitizeBuildingName } from '@/utils/sanitize';
 import { useToast } from '@/contexts/ToastContext';
 import { deleteBuilding } from '@/services/api/buildingsApi';
+import { ConfirmDialog } from '@/components/Modal';
+import { SearchBar } from './SearchBar';
+import { useAdvancedSearch, type FilterCondition } from '@/utils/search';
+import { exportBuildingsCSV, exportJSON } from '@/utils/export';
 import { logger } from '@/utils/logger';
 import './BuildingsManager.css';
 
@@ -29,6 +33,19 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+  // Search and filter
+  const search = useAdvancedSearch(buildings, {
+    defaultPageSize: 20,
+    searchOptions: {
+      fields: ['properties.name', 'properties.address', 'properties.city', 'properties.country'],
+      fuzzy: false,
+    },
+  });
+
+  // Use filtered results
+  const displayedBuildings = search.result.items;
 
   // Keyboard navigation: Escape to close
   useEffect(() => {
@@ -62,15 +79,13 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     setSelectedIds(newSelected);
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
+    setShowConfirmDelete(true);
+  };
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${selectedIds.size} building(s)? This action cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
+  const handleConfirmDelete = async () => {
+    setShowConfirmDelete(false);
     setDeleting(true);
     setError(null);
 
@@ -120,6 +135,26 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     }
   };
 
+  const handleExportCSV = () => {
+    try {
+      exportBuildingsCSV(displayedBuildings, 'buildings.csv');
+      success('Buildings exported to CSV');
+    } catch (err) {
+      showError('Failed to export CSV');
+      logger.error('[BuildingsManager] Export CSV error:', err);
+    }
+  };
+
+  const handleExportJSON = () => {
+    try {
+      exportJSON(displayedBuildings, 'buildings.json');
+      success('Buildings exported to JSON');
+    } catch (err) {
+      showError('Failed to export JSON');
+      logger.error('[BuildingsManager] Export JSON error:', err);
+    }
+  };
+
   return (
     <div className="buildings-manager-overlay" onClick={onClose}>
       <div
@@ -135,6 +170,16 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
           </button>
         </div>
 
+        {/* Search and Filters */}
+        <SearchBar
+          onSearchChange={search.setQuery}
+          onFiltersChange={(filters: FilterCondition[]) => {
+            search.clearFilters();
+            filters.forEach((f) => search.addFilter(f));
+          }}
+          totalResults={search.result.total}
+        />
+
         <div className="manager-actions">
           <div className="action-left">
             <button
@@ -148,13 +193,21 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
               {selectedIds.size} of {buildings.length} selected
             </span>
           </div>
-          <button
-            className="delete-button"
-            onClick={handleDeleteSelected}
-            disabled={selectedIds.size === 0 || deleting}
-          >
-            {deleting ? '⏳ Deleting...' : `🗑️ Delete Selected (${selectedIds.size})`}
-          </button>
+          <div className="action-right">
+            <button className="export-button" onClick={handleExportCSV} disabled={displayedBuildings.length === 0}>
+              📊 Export CSV
+            </button>
+            <button className="export-button" onClick={handleExportJSON} disabled={displayedBuildings.length === 0}>
+              📄 Export JSON
+            </button>
+            <button
+              className="delete-button"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.size === 0 || deleting}
+            >
+              {deleting ? '⏳ Deleting...' : `🗑️ Delete (${selectedIds.size})`}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -169,8 +222,13 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
               <p>📭 No buildings in database</p>
               <p className="hint">Upload an IFC file to add a building</p>
             </div>
+          ) : displayedBuildings.length === 0 ? (
+            <div className="empty-state">
+              <p>🔍 No buildings match your search</p>
+              <p className="hint">Try adjusting your filters</p>
+            </div>
           ) : (
-            buildings.map((building) => (
+            displayedBuildings.map((building) => (
               <div
                 key={building.id}
                 className={`building-item ${selectedIds.has(building.id) ? 'selected' : ''}`}
@@ -227,6 +285,18 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
           )}
         </div>
       </div>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Buildings"
+        message={`Are you sure you want to delete ${selectedIds.size} building(s)? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
