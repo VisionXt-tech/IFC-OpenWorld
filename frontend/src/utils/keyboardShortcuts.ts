@@ -177,7 +177,7 @@ export function getShortcutsHelp(): { category: string; shortcuts: { keys: strin
   const shortcuts = Array.from(shortcutRegistry.getAll().entries());
 
   // Group by category (extract from id)
-  const grouped = shortcuts.reduce((acc, [id, shortcut]) => {
+  const grouped = shortcuts.reduce<Record<string, { keys: string; description: string }[]>>((acc, [id, shortcut]) => {
     const category = id.split('.')[0] || 'General';
 
     if (!acc[category]) {
@@ -190,7 +190,7 @@ export function getShortcutsHelp(): { category: string; shortcuts: { keys: strin
     });
 
     return acc;
-  }, {} as Record<string, { keys: string; description: string }[]>);
+  }, {});
 
   return Object.entries(grouped).map(([category, shortcuts]) => ({
     category,

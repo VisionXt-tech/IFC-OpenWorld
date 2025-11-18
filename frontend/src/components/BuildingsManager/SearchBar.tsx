@@ -98,7 +98,7 @@ export function SearchBar({ onSearchChange, onFiltersChange, totalResults }: Sea
           className="search-input"
         />
         <button
-          onClick={() => setShowFilters(!showFilters)}
+          onClick={() => { setShowFilters(!showFilters); }}
           className="filters-toggle"
           aria-label="Toggle filters"
         >
@@ -117,14 +117,14 @@ export function SearchBar({ onSearchChange, onFiltersChange, totalResults }: Sea
                   type="number"
                   placeholder="Min"
                   value={filters.minHeight || ''}
-                  onChange={(e) => handleFilterChange('minHeight', e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) => { handleFilterChange('minHeight', e.target.value ? Number(e.target.value) : undefined); }}
                 />
                 <span>to</span>
                 <input
                   type="number"
                   placeholder="Max"
                   value={filters.maxHeight || ''}
-                  onChange={(e) => handleFilterChange('maxHeight', e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) => { handleFilterChange('maxHeight', e.target.value ? Number(e.target.value) : undefined); }}
                 />
               </div>
             </div>
@@ -136,14 +136,14 @@ export function SearchBar({ onSearchChange, onFiltersChange, totalResults }: Sea
                   type="number"
                   placeholder="Min"
                   value={filters.minFloors || ''}
-                  onChange={(e) => handleFilterChange('minFloors', e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) => { handleFilterChange('minFloors', e.target.value ? Number(e.target.value) : undefined); }}
                 />
                 <span>to</span>
                 <input
                   type="number"
                   placeholder="Max"
                   value={filters.maxFloors || ''}
-                  onChange={(e) => handleFilterChange('maxFloors', e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) => { handleFilterChange('maxFloors', e.target.value ? Number(e.target.value) : undefined); }}
                 />
               </div>
             </div>
@@ -152,7 +152,7 @@ export function SearchBar({ onSearchChange, onFiltersChange, totalResults }: Sea
               <label>3D Model</label>
               <select
                 value={filters.hasModel === undefined ? '' : filters.hasModel ? 'true' : 'false'}
-                onChange={(e) => handleFilterChange('hasModel', e.target.value === '' ? undefined : e.target.value === 'true')}
+                onChange={(e) => { handleFilterChange('hasModel', e.target.value === '' ? undefined : e.target.value === 'true'); }}
               >
                 <option value="">All</option>
                 <option value="true">With model</option>

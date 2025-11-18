@@ -75,7 +75,7 @@ export function Pagination({
       <div className="pagination-controls">
         <button
           className="pagination-button"
-          onClick={() => onPageChange(currentPage - 1)}
+          onClick={() => { onPageChange(currentPage - 1); }}
           disabled={!hasPrevPage}
           aria-label="Previous page"
         >
@@ -92,7 +92,7 @@ export function Pagination({
               <button
                 key={page}
                 className={`pagination-page ${page === currentPage ? 'active' : ''}`}
-                onClick={() => onPageChange(page as number)}
+                onClick={() => { onPageChange(page as number); }}
                 aria-label={`Page ${page}`}
                 aria-current={page === currentPage ? 'page' : undefined}
               >
@@ -104,7 +104,7 @@ export function Pagination({
 
         <button
           className="pagination-button"
-          onClick={() => onPageChange(currentPage + 1)}
+          onClick={() => { onPageChange(currentPage + 1); }}
           disabled={!hasNextPage}
           aria-label="Next page"
         >
@@ -117,7 +117,7 @@ export function Pagination({
         <select
           id="page-size"
           value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          onChange={(e) => { onPageSizeChange(Number(e.target.value)); }}
           className="pagination-select"
         >
           <option value={10}>10</option>

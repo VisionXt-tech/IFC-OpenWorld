@@ -276,7 +276,7 @@ export function useMemoryMonitor(intervalMs = 10000): {
     checkMemory();
     const interval = setInterval(checkMemory, intervalMs);
 
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); };
   }, [intervalMs]);
 
   return memoryRef.current;

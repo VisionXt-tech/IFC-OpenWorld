@@ -157,7 +157,7 @@ function App() {
     {
       key: 'u',
       description: 'Toggle upload panel',
-      handler: () => setShowUploadZone((prev) => !prev),
+      handler: () => { setShowUploadZone((prev) => !prev); },
     },
     []
   );
@@ -168,7 +168,7 @@ function App() {
     {
       key: 'b',
       description: 'Toggle buildings manager',
-      handler: () => setShowBuildingsManager((prev) => !prev),
+      handler: () => { setShowBuildingsManager((prev) => !prev); },
     },
     []
   );
@@ -198,7 +198,7 @@ function App() {
       key: '?',
       shift: true,
       description: 'Show keyboard shortcuts help',
-      handler: () => setShowShortcutsHelp(true),
+      handler: () => { setShowShortcutsHelp(true); },
     },
     []
   );
@@ -373,7 +373,7 @@ function App() {
       {/* Keyboard Shortcuts Help Modal */}
       <KeyboardShortcutsHelp
         isOpen={showShortcutsHelp}
-        onClose={() => setShowShortcutsHelp(false)}
+        onClose={() => { setShowShortcutsHelp(false); }}
       />
     </div>
   );

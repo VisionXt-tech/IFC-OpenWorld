@@ -248,7 +248,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
           onSearchChange={search.setQuery}
           onFiltersChange={(filters: FilterCondition[]) => {
             search.clearFilters();
-            filters.forEach((f) => search.addFilter(f));
+            filters.forEach((f) => { search.addFilter(f); });
           }}
           totalResults={search.result.total}
         />
@@ -330,7 +330,7 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         isOpen={showConfirmDelete}
-        onClose={() => setShowConfirmDelete(false)}
+        onClose={() => { setShowConfirmDelete(false); }}
         onConfirm={handleConfirmDelete}
         title="Delete Buildings"
         message={`Are you sure you want to delete ${selectedIds.size} building(s)? This action cannot be undone.`}
@@ -362,13 +362,13 @@ const BuildingsList = ({ buildings, selectedIds, onSelectBuilding }: BuildingsLi
           <div
             key={building.id}
             className={`building-item ${selectedIds.has(building.id) ? 'selected' : ''}`}
-            onClick={() => onSelectBuilding(building.id)}
+            onClick={() => { onSelectBuilding(building.id); }}
           >
             <input
               type="checkbox"
               checked={selectedIds.has(building.id)}
-              onChange={() => onSelectBuilding(building.id)}
-              onClick={(e) => e.stopPropagation()}
+              onChange={() => { onSelectBuilding(building.id); }}
+              onClick={(e) => { e.stopPropagation(); }}
             />
             <div className="building-info">
               <div className="building-name">
