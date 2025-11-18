@@ -5,6 +5,7 @@ import UploadZone from '@/components/UploadZone';
 import BuildingsManager from '@/components/BuildingsManager';
 import InfoPanel from '@/components/InfoPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { useUploadStore, useBuildingsStore } from '@/store';
 import { useToast } from '@/contexts/ToastContext';
 import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
@@ -23,6 +24,7 @@ function App() {
   const [showBuildingsManager, setShowBuildingsManager] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [show3DModels, setShow3DModels] = useState(false); // Toggle between 2D markers and 3D models
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const viewerRef = useRef<Viewer | null>(null);
 
   // Zustand stores
@@ -72,6 +74,34 @@ function App() {
   const handleCloseInfoPanel = useCallback(() => {
     setSelectedBuildingId(null);
   }, []);
+
+  const handleToggleUploadZone = useCallback(() => {
+    setShowUploadZone((prev) => !prev);
+  }, []);
+
+  const handleToggleBuildingsManager = useCallback(() => {
+    setShowBuildingsManager((prev) => !prev);
+  }, []);
+
+  const handleToggle3DView = useCallback(() => {
+    const newMode = !show3DModels;
+    setShow3DModels(newMode);
+
+    // Show notifications based on state
+    if (newMode) {
+      // Switching to 3D
+      if (buildingsWithModels === 0) {
+        warning('No 3D models available yet. Upload IFC files with geometry to see 3D buildings.', 5000);
+      } else if (buildingsWithModels < buildings.length) {
+        info(`3D View enabled. Showing ${buildingsWithModels} building(s) in 3D (${buildings.length - buildingsWithModels} without 3D models will show as markers).`, 4000);
+      } else {
+        info(`3D View enabled. All ${buildingsWithModels} building(s) have 3D models.`, 3000);
+      }
+    } else {
+      // Switching to 2D
+      info('2D View enabled. Showing all buildings as markers.', 2000);
+    }
+  }, [show3DModels, buildingsWithModels, buildings.length, info, warning]);
 
   // Find the selected building from the store
   // CODE QUALITY: Use nullish coalescing (??) instead of || for better handling of falsy values
@@ -149,6 +179,18 @@ function App() {
     [show3DModels, info]
   );
 
+  // ?: Show keyboard shortcuts help
+  useKeyboardShortcut(
+    'app.showHelp',
+    {
+      key: '?',
+      shift: true,
+      description: 'Show keyboard shortcuts help',
+      handler: () => setShowShortcutsHelp(true),
+    },
+    []
+  );
+
   // Watch for successful upload
   // BUGFIX: Handle promises properly
   useEffect(() => {
@@ -216,6 +258,14 @@ function App() {
 
   return (
     <div className="app">
+      {/* Skip links for keyboard navigation */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <a href="#controls" className="skip-link">
+        Skip to controls
+      </a>
+
       <header className="app-header-overlay">
         <div className="header-content">
           <div className="header-left">
@@ -230,12 +280,14 @@ function App() {
         </div>
       </header>
 
-      <CesiumGlobe
-        onReady={handleGlobeReady}
-        onError={handleGlobeError}
-        onBuildingClick={handleBuildingClick}
-        show3DModels={show3DModels}
-      />
+      <main id="main-content">
+        <CesiumGlobe
+          onReady={handleGlobeReady}
+          onError={handleGlobeError}
+          onBuildingClick={handleBuildingClick}
+          show3DModels={show3DModels}
+        />
+      </main>
 
       {showUploadZone && (
         <div className="upload-panel-overlay">
@@ -249,9 +301,7 @@ function App() {
           />
           <button
             className="close-upload-button"
-            onClick={() => {
-              setShowUploadZone(false);
-            }}
+            onClick={handleToggleUploadZone}
             aria-label="Close upload panel"
             type="button"
           >
@@ -260,69 +310,47 @@ function App() {
         </div>
       )}
 
-      {!showUploadZone && (
-        <button
-          className="open-upload-button"
-          onClick={() => {
-            setShowUploadZone(true);
-          }}
-          aria-label="Open upload panel"
-          type="button"
-        >
-          📤 Upload IFC
-        </button>
-      )}
+      <div id="controls" role="toolbar" aria-label="Application controls">
+        {!showUploadZone && (
+          <button
+            className="open-upload-button"
+            onClick={handleToggleUploadZone}
+            aria-label="Open upload panel"
+            type="button"
+          >
+            📤 Upload IFC
+          </button>
+        )}
 
-      {!showUploadZone && (
-        <button
-          className="open-manager-button"
-          onClick={() => {
-            setShowBuildingsManager(true);
-          }}
-          aria-label="Open buildings manager"
-          type="button"
-        >
-          🏗️ Manage Buildings
-        </button>
-      )}
+        {!showUploadZone && (
+          <button
+            className="open-manager-button"
+            onClick={handleToggleBuildingsManager}
+            aria-label="Open buildings manager"
+            type="button"
+          >
+            🏗️ Manage Buildings
+          </button>
+        )}
 
-      {!showUploadZone && (
-        <button
-          className="toggle-3d-button"
-          onClick={() => {
-            const newMode = !show3DModels;
-            setShow3DModels(newMode);
-
-            // Show notifications based on state
-            if (newMode) {
-              // Switching to 3D
-              if (buildingsWithModels === 0) {
-                warning('No 3D models available yet. Upload IFC files with geometry to see 3D buildings.', 5000);
-              } else if (buildingsWithModels < buildings.length) {
-                info(`3D View enabled. Showing ${buildingsWithModels} building(s) in 3D (${buildings.length - buildingsWithModels} without 3D models will show as markers).`, 4000);
-              } else {
-                info(`3D View enabled. All ${buildingsWithModels} building(s) have 3D models.`, 3000);
-              }
-            } else {
-              // Switching to 2D
-              info('2D View enabled. Showing all buildings as markers.', 2000);
-            }
-          }}
-          aria-label={show3DModels ? 'Switch to 2D markers' : 'Switch to 3D models'}
-          type="button"
-          title={buildingsWithModels > 0
-            ? `${buildingsWithModels} of ${buildings.length} building(s) have 3D models`
-            : 'No 3D models available yet'}
-        >
-          {show3DModels ? '📍 2D View' : `🏢 3D View${buildingsWithModels > 0 ? ` (${buildingsWithModels})` : ''}`}
-        </button>
-      )}
+        {!showUploadZone && (
+          <button
+            className="toggle-3d-button"
+            onClick={handleToggle3DView}
+            aria-label={show3DModels ? 'Switch to 2D markers' : 'Switch to 3D models'}
+            type="button"
+            title={buildingsWithModels > 0
+              ? `${buildingsWithModels} of ${buildings.length} building(s) have 3D models`
+              : 'No 3D models available yet'}
+          >
+            {show3DModels ? '📍 2D View' : `🏢 3D View${buildingsWithModels > 0 ? ` (${buildingsWithModels})` : ''}`}
+          </button>
+        )}
+      </div>
 
       {showBuildingsManager && (
         <BuildingsManager
-          onClose={() => {
-            setShowBuildingsManager(false);
-          }}
+          onClose={handleToggleBuildingsManager}
         />
       )}
 

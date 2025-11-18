@@ -9,13 +9,13 @@ import { useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/utils/logger';
 
 /**
- * Performance mark interface
+ * Performance mark interface (unused - kept for documentation)
  */
-interface PerformanceMark {
-  name: string;
-  startTime: number;
-  duration?: number;
-}
+// interface PerformanceMark {
+//   name: string;
+//   startTime: number;
+//   duration?: number;
+// }
 
 /**
  * Hook to measure component render time

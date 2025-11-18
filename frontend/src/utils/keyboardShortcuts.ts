@@ -5,7 +5,7 @@
  * with conflict detection and user customization support.
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';
 
 /**
