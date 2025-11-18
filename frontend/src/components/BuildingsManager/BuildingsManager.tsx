@@ -3,6 +3,7 @@ import { useBuildingsStore } from '@/store';
 import { sanitizeBuildingName } from '@/utils/sanitize';
 import { useToast } from '@/contexts/ToastContext';
 import { deleteBuilding } from '@/services/api/buildingsApi';
+import { logger } from '@/utils/logger';
 import './BuildingsManager.css';
 
 /**
@@ -91,29 +92,29 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
 
       // Refresh buildings list
       await fetchBuildings().catch((err) => {
-        console.error('[BuildingsManager] Failed to refresh buildings:', err);
+        logger.error('[BuildingsManager] Failed to refresh buildings:', err);
       });
       setSelectedIds(new Set());
 
       // IMPROVEMENT: Detailed feedback based on results
       if (failed.length === 0) {
         success(`Successfully deleted ${succeeded.length} building(s)`, 4000);
-        console.log(`[BuildingsManager] Deleted ${succeeded.length} building(s)`);
+        logger.debug(`[BuildingsManager] Deleted ${succeeded.length} building(s)`);
       } else if (succeeded.length === 0) {
         showError(`Failed to delete all ${failed.length} building(s)`);
-        console.error('[BuildingsManager] All deletions failed');
+        logger.error('[BuildingsManager] All deletions failed');
       } else {
         warning(
           `Deleted ${succeeded.length} building(s), but ${failed.length} failed. Please try again.`,
           6000
         );
-        console.warn(`[BuildingsManager] Partial success: ${succeeded.length} succeeded, ${failed.length} failed`);
+        logger.warn(`[BuildingsManager] Partial success: ${succeeded.length} succeeded, ${failed.length} failed`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete buildings';
       setError(errorMessage);
       showError(errorMessage);
-      console.error('[BuildingsManager] Delete error:', err);
+      logger.error('[BuildingsManager] Delete error:', err);
     } finally {
       setDeleting(false);
     }

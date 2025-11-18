@@ -19,6 +19,10 @@ interface Building {
   ifcFileId: string;
   createdAt: Date;
   updatedAt: Date;
+  modelUrl?: string | null;
+  modelSizeMb?: number | null;
+  modelFormat?: string | null;
+  modelGeneratedAt?: Date | null;
 }
 
 export interface BoundingBox {
@@ -45,6 +49,10 @@ export interface BuildingGeoJSON {
     ifcFileId: string;
     createdAt: string;
     updatedAt: string;
+    modelUrl?: string | null;
+    modelSizeMb?: number | null;
+    modelFormat?: string | null;
+    modelGeneratedAt?: string | null;
   };
 }
 
@@ -286,7 +294,11 @@ export class BuildingService {
           created_at as "createdAt",
           updated_at as "updatedAt",
           ST_X(location::geometry) as longitude,
-          ST_Y(location::geometry) as latitude
+          ST_Y(location::geometry) as latitude,
+          model_url as "modelUrl",
+          model_size_mb as "modelSizeMb",
+          model_format as "modelFormat",
+          model_generated_at as "modelGeneratedAt"
         FROM buildings
         WHERE id = $1
       `;
@@ -294,6 +306,10 @@ export class BuildingService {
       interface BuildingWithCoords extends Building {
         longitude: number;
         latitude: number;
+        modelUrl?: string | null;
+        modelSizeMb?: number | null;
+        modelFormat?: string | null;
+        modelGeneratedAt?: Date | null;
       }
 
       const result = await pool.query(query, [id]);

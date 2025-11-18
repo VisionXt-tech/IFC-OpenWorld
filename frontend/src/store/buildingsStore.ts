@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getBuildings, getBuildingById } from '@/services/api';
 import type { Building, BuildingFeature } from '@/types';
+import { logger } from '@/utils/logger';
 
 /**
  * Buildings Store
@@ -44,7 +45,7 @@ export const useBuildingsStore = create<BuildingsStore>((set) => ({
         isLoading: false,
       });
 
-      console.log(`[BuildingsStore] Fetched ${response.features.length} buildings`);
+      logger.debug(`[BuildingsStore] Fetched ${response.features.length} buildings`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to fetch buildings';
@@ -54,7 +55,7 @@ export const useBuildingsStore = create<BuildingsStore>((set) => ({
         isLoading: false,
       });
 
-      console.error('[BuildingsStore] Fetch failed:', error);
+      logger.error('[BuildingsStore] Fetch failed:', error);
     }
   },
 
@@ -69,7 +70,7 @@ export const useBuildingsStore = create<BuildingsStore>((set) => ({
         isLoading: false,
       });
 
-      console.log('[BuildingsStore] Fetched building:', building.name);
+      logger.debug('[BuildingsStore] Fetched building:', building.name);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to fetch building details';
@@ -79,7 +80,7 @@ export const useBuildingsStore = create<BuildingsStore>((set) => ({
         isLoading: false,
       });
 
-      console.error('[BuildingsStore] Fetch building failed:', error);
+      logger.error('[BuildingsStore] Fetch building failed:', error);
     }
   },
 
@@ -88,7 +89,7 @@ export const useBuildingsStore = create<BuildingsStore>((set) => ({
       buildings: [...state.buildings, building],
     }));
 
-    console.log('[BuildingsStore] Added building:', building.properties.name);
+    logger.debug('[BuildingsStore] Added building:', building.properties.name);
   },
 
   selectBuilding: (building: Building | null) => {

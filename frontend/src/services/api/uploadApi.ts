@@ -4,6 +4,7 @@ import type {
   UploadCompleteRequest,
   ProcessingStatusResponse,
 } from '@/types';
+import { logger } from '@/utils/logger';
 
 /**
  * Upload API Service
@@ -43,7 +44,7 @@ export async function uploadToS3(
   onProgress?: (progress: number) => void,
   contentType?: string
 ): Promise<void> {
-  console.log('[UploadAPI] Starting S3 upload:', {
+  logger.debug('[UploadAPI] Starting S3 upload:', {
     url: presignedUrl,
     fileSize: file.size,
     contentType: (contentType ?? file.type) || 'application/x-step',
@@ -56,21 +57,21 @@ export async function uploadToS3(
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) {
         const progress = Math.round((event.loaded / event.total) * 100);
-        console.log(`[UploadAPI] Upload progress: ${progress}% (${event.loaded}/${event.total} bytes)`);
+        logger.debug(`[UploadAPI] Upload progress: ${progress}% (${event.loaded}/${event.total} bytes)`);
         onProgress?.(progress);
       }
     });
 
     // Handle completion
     xhr.addEventListener('load', () => {
-      console.log('[UploadAPI] XHR load event:', {
+      logger.debug('[UploadAPI] XHR load event:', {
         status: xhr.status,
         statusText: xhr.statusText,
         responseURL: xhr.responseURL,
       });
 
       if (xhr.status === 200 || xhr.status === 204) {
-        console.log('[UploadAPI] Upload successful');
+        logger.debug('[UploadAPI] Upload successful');
         resolve();
       } else {
         // Try to get error message from response, but don't fail if responseText is unavailable
@@ -84,7 +85,7 @@ export async function uploadToS3(
           }
         } catch (e) {
           // Ignore error reading responseText
-          console.warn('[UploadAPI] Could not read response text:', e);
+          logger.warn('[UploadAPI] Could not read response text:', e);
         }
         reject(new Error(errorMessage));
       }
@@ -92,17 +93,17 @@ export async function uploadToS3(
 
     // Handle errors
     xhr.addEventListener('error', (event) => {
-      console.error('[UploadAPI] XHR error event:', event);
+      logger.error('[UploadAPI] XHR error event:', event);
       reject(new Error('S3 upload failed: Network error'));
     });
 
     xhr.addEventListener('abort', () => {
-      console.error('[UploadAPI] XHR abort event');
+      logger.error('[UploadAPI] XHR abort event');
       reject(new Error('S3 upload cancelled'));
     });
 
     xhr.addEventListener('timeout', () => {
-      console.error('[UploadAPI] XHR timeout event');
+      logger.error('[UploadAPI] XHR timeout event');
       reject(new Error('S3 upload timeout'));
     });
 
@@ -111,7 +112,7 @@ export async function uploadToS3(
     xhr.setRequestHeader('Content-Type', (contentType ?? file.type) || 'application/x-step');
     // Do NOT set Content-Length - browser sets it automatically and setting it manually causes issues
 
-    console.log('[UploadAPI] Sending XHR request...');
+    logger.debug('[UploadAPI] Sending XHR request...');
     xhr.send(file);
   });
 }
@@ -156,7 +157,7 @@ export async function uploadIFCFile(
     contentType,
   });
 
-  console.log('[UploadAPI] Presigned URL received:', {
+  logger.debug('[UploadAPI] Presigned URL received:', {
     fileId,
     s3Key,
     expiresIn,
@@ -167,7 +168,7 @@ export async function uploadIFCFile(
   // Step 2: Upload to S3 with same content type
   await uploadToS3(presignedUrl, file, onProgress, contentType);
 
-  console.log('[UploadAPI] S3 upload complete');
+  logger.debug('[UploadAPI] S3 upload complete');
 
   // Step 3: Notify backend (send s3Key, not fileName/fileSize)
   const response = await completeUpload({
@@ -175,7 +176,7 @@ export async function uploadIFCFile(
     s3Key,
   });
 
-  console.log('[UploadAPI] Upload marked as complete:', response);
+  logger.debug('[UploadAPI] Upload marked as complete:', response);
 
   // Backend has triggered Celery task, return taskId for status polling
   return { taskId: response.taskId, fileId };

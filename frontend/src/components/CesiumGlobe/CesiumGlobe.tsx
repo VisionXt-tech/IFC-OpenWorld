@@ -3,6 +3,7 @@ import * as Cesium from 'cesium';
 import { config } from '@/config';
 import { useBuildingsStore } from '@/store';
 import { sanitizeCesiumLabel } from '@/utils/sanitize';
+import { logger } from '@/utils/logger';
 import './CesiumGlobe.css';
 
 /**
@@ -141,11 +142,9 @@ function CesiumGlobe({
 
       const elapsed = performance.now() - startTime;
 
-      if (config.features.debug) {
-        console.log(`[CesiumGlobe] Initialized in ${(elapsed / 1000).toFixed(3)}s`);
-        console.log(`[CesiumGlobe] Camera: Global view (20M meters altitude)`);
-        console.log(`[CesiumGlobe] Ion token: ${config.cesium.ionToken ? 'Configured' : 'Not set'}`);
-      }
+      logger.debug(`[CesiumGlobe] Initialized in ${(elapsed / 1000).toFixed(3)}s`);
+      logger.debug(`[CesiumGlobe] Camera: Global view (20M meters altitude)`);
+      logger.debug(`[CesiumGlobe] Ion token: ${config.cesium.ionToken ? 'Configured' : 'Not set'}`);
 
       // Add click handler for building selection
       // BUGFIX: Store handler reference for proper cleanup
@@ -170,7 +169,7 @@ function CesiumGlobe({
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error('[CesiumGlobe] Initialization error:', err);
+      logger.error('[CesiumGlobe] Initialization error:', err);
       onErrorRef.current?.(err);
     }
 
@@ -187,7 +186,7 @@ function CesiumGlobe({
           );
         } catch (error) {
           // Ignore error if handler was never set
-          console.debug('[CesiumGlobe] Event handler cleanup (already removed or not set)');
+          logger.debug('[CesiumGlobe] Event handler cleanup (already removed or not set)');
         }
 
         viewer.current.destroy();
@@ -202,7 +201,7 @@ function CesiumGlobe({
   useEffect(() => {
     if (!viewer.current) return;
 
-    console.log(`[CesiumGlobe] Updating markers (${buildings.length} buildings)`);
+    logger.debug(`[CesiumGlobe] Updating markers (${buildings.length} buildings)`);
 
     // Create a set of current building IDs for fast lookup
     const currentBuildingIds = new Set(buildings.map((b) => b.id));
@@ -212,7 +211,7 @@ function CesiumGlobe({
       if (!currentBuildingIds.has(id) && viewer.current) {
         viewer.current.entities.remove(entity);
         markerMap.current.delete(id);
-        console.log(`[CesiumGlobe] Removed marker: ${id}`);
+        logger.debug(`[CesiumGlobe] Removed marker: ${id}`);
       }
     });
 
@@ -236,7 +235,7 @@ function CesiumGlobe({
 
       if (use3D) {
         // Load 3D model (glTF/glB)
-        console.log(`[CesiumGlobe] Loading 3D model for ${safeName}:`, properties.modelUrl);
+        logger.debug(`[CesiumGlobe] Loading 3D model for ${safeName}:`, properties.modelUrl);
 
         try {
           // Calculate height offset - position model at ground level or use building height if available
@@ -279,10 +278,10 @@ function CesiumGlobe({
           markerMap.current.set(buildingFeature.id, entity);
           addedCount++;
 
-          console.log(`[CesiumGlobe] 3D model loaded successfully for ${safeName}`);
+          logger.debug(`[CesiumGlobe] 3D model loaded successfully for ${safeName}`);
         } catch (error) {
-          console.error(`[CesiumGlobe] Error loading 3D model for ${safeName}:`, error);
-          console.warn(`[CesiumGlobe] Falling back to 2D marker for ${safeName}`);
+          logger.error(`[CesiumGlobe] Error loading 3D model for ${safeName}:`, error);
+          logger.warn(`[CesiumGlobe] Falling back to 2D marker for ${safeName}`);
 
           // Fallback to 2D marker on error
           const entity = viewer.current.entities.add({
@@ -340,7 +339,7 @@ function CesiumGlobe({
     });
 
     if (addedCount > 0) {
-      console.log(`[CesiumGlobe] Added ${addedCount} new markers`);
+      logger.debug(`[CesiumGlobe] Added ${addedCount} new markers`);
     }
   }, [buildings, show3DModels]);
 
