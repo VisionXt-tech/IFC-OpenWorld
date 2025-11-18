@@ -8,9 +8,11 @@ import { ConfirmDialog } from '@/components/Modal';
 import { SearchBar } from './SearchBar';
 import { Pagination } from './Pagination';
 import { BuildingListSkeleton } from '@/components/LoadingSkeleton';
+import { ButtonSpinner } from '@/components/Spinner';
 import { useAdvancedSearch, type FilterCondition } from '@/utils/search';
 import { exportBuildingsCSV, exportJSON } from '@/utils/export';
 import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
+import { getDeletionErrorMessage, isOffline, getOfflineMessage } from '@/utils/errorMessages';
 import { logger } from '@/utils/logger';
 import './BuildingsManager.css';
 
@@ -78,11 +80,21 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
 
   const handleConfirmDelete = async () => {
     setShowConfirmDelete(false);
+
+    // Check if user is offline
+    if (isOffline()) {
+      const message = getOfflineMessage('delete buildings');
+      setError(message);
+      showError(message);
+      return;
+    }
+
     setDeleting(true);
     setError(null);
 
     try {
       const idsToDelete = Array.from(selectedIds);
+      const count = idsToDelete.length;
 
       // IMPROVEMENT: Use Promise.allSettled to handle partial failures
       // CSRF token is now handled automatically by apiClient
@@ -103,24 +115,28 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
       });
       setSelectedIds(new Set());
 
-      // IMPROVEMENT: Detailed feedback based on results
+      // IMPROVEMENT: User-friendly feedback based on results
       if (failed.length === 0) {
-        success(`Successfully deleted ${succeeded.length} building(s)`, 4000);
+        success(`Successfully deleted ${succeeded.length} building${succeeded.length > 1 ? 's' : ''}! ✅`, 4000);
         logger.debug(`[BuildingsManager] Deleted ${succeeded.length} building(s)`);
       } else if (succeeded.length === 0) {
-        showError(`Failed to delete all ${failed.length} building(s)`);
-        logger.error('[BuildingsManager] All deletions failed');
+        // Get error from first failed result for better message
+        const firstError = failed[0].status === 'rejected' ? failed[0].reason : undefined;
+        const message = getDeletionErrorMessage(count, firstError?.message);
+        setError(message);
+        showError(message);
+        logger.error('[BuildingsManager] All deletions failed', firstError);
       } else {
         warning(
-          `Deleted ${succeeded.length} building(s), but ${failed.length} failed. Please try again.`,
+          `Partially successful: Deleted ${succeeded.length} of ${count} buildings. ${failed.length} failed. Please try again for the remaining items.`,
           6000
         );
         logger.warn(`[BuildingsManager] Partial success: ${succeeded.length} succeeded, ${failed.length} failed`);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete buildings';
-      setError(errorMessage);
-      showError(errorMessage);
+      const message = getDeletionErrorMessage(selectedIds.size, err instanceof Error ? err.message : undefined);
+      setError(message);
+      showError(message);
       logger.error('[BuildingsManager] Delete error:', err);
     } finally {
       setDeleting(false);
@@ -262,7 +278,8 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
               onClick={handleDeleteSelected}
               disabled={selectedIds.size === 0 || deleting}
             >
-              {deleting ? '⏳ Deleting...' : `🗑️ Delete (${selectedIds.size})`}
+              {deleting && <ButtonSpinner />}
+              {deleting ? 'Deleting...' : `🗑️ Delete (${selectedIds.size})`}
             </button>
           </div>
         </div>
