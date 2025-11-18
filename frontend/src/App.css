@@ -427,4 +427,45 @@ main#main-content {
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
   }
+
+  /* Ensure minimum touch target size (44x44px) for mobile accessibility */
+  .open-upload-button,
+  .open-manager-button,
+  .toggle-3d-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Stack buttons vertically with proper spacing on smaller screens */
+  @media (max-width: 480px) {
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-2);
+    }
+
+    .app-header-overlay h1 {
+      font-size: 1.2em;
+    }
+
+    .open-upload-button,
+    .open-manager-button,
+    .toggle-3d-button {
+      right: 8px;
+      font-size: 0.85rem;
+      padding: 0.6rem 0.9rem;
+    }
+
+    .open-upload-button {
+      top: 70px;
+    }
+
+    .open-manager-button {
+      top: 120px;
+    }
+
+    .toggle-3d-button {
+      top: 170px;
+    }
+  }
 }
