@@ -19,6 +19,7 @@ interface UploadStore {
   fileId: string | null;
   processingResult: ProcessingStatusResponse['result'] | null;
   pollingTimeoutId: NodeJS.Timeout | null; // BUGFIX: Track timeout to prevent race conditions
+  isPolling: boolean; // BUGFIX: Prevent concurrent polling requests
   abortController: AbortController | null; // Upload cancellation controller
 
   // Actions
@@ -30,7 +31,7 @@ interface UploadStore {
 
 const initialState: Pick<
   UploadStore,
-  'uploadStatus' | 'taskId' | 'fileId' | 'processingResult' | 'pollingTimeoutId' | 'abortController'
+  'uploadStatus' | 'taskId' | 'fileId' | 'processingResult' | 'pollingTimeoutId' | 'isPolling' | 'abortController'
 > = {
   uploadStatus: {
     status: 'idle',
@@ -44,6 +45,7 @@ const initialState: Pick<
   fileId: null,
   processingResult: null,
   pollingTimeoutId: null,
+  isPolling: false,
   abortController: null,
 };
 
@@ -147,14 +149,23 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
 
   pollProcessingStatus: async () => {
     const state = get();
-    const { taskId, pollingTimeoutId } = state;
+    const { taskId, pollingTimeoutId, isPolling } = state;
     if (!taskId) return;
+
+    // BUGFIX: Prevent concurrent polling requests (race condition)
+    if (isPolling) {
+      logger.debug('[UploadStore] Polling already in progress, skipping');
+      return;
+    }
 
     // BUGFIX: Clear existing timeout to prevent race conditions
     if (pollingTimeoutId) {
       clearTimeout(pollingTimeoutId);
       set({ pollingTimeoutId: null });
     }
+
+    // Mark as polling
+    set({ isPolling: true });
 
     try {
       const statusResponse = await getProcessingStatus(taskId);
@@ -179,6 +190,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
               error: errorMessage,
             },
             pollingTimeoutId: null,
+            isPolling: false,
           });
 
           logger.error('[UploadStore] Processing failed:', errorMessage);
@@ -191,6 +203,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
               status: 'success',
             },
             pollingTimeoutId: null,
+            isPolling: false,
           });
 
           logger.debug('[UploadStore] Processing complete:', result);
@@ -203,6 +216,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
               error: 'Processing completed but returned unexpected result format',
             },
             pollingTimeoutId: null,
+            isPolling: false,
           });
 
           logger.error('[UploadStore] Unexpected result format:', result);
@@ -215,13 +229,27 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
             error: statusResponse.error ?? 'Processing failed',
           },
           pollingTimeoutId: null,
+          isPolling: false,
         });
 
         logger.error('[UploadStore] Processing failed:', statusResponse.error);
       } else {
         // BUGFIX: Still processing (PENDING, STARTED, RETRY), schedule next poll and track timeout ID
+        // Reset isPolling flag before scheduling next poll
+        set({ isPolling: false });
+
         const timeoutId = setTimeout(() => {
-          void get().pollProcessingStatus();
+          get().pollProcessingStatus().catch((error) => {
+            logger.error('[UploadStore] Polling error:', error);
+            set({
+              uploadStatus: {
+                ...get().uploadStatus,
+                status: 'error',
+                error: 'Failed to check processing status',
+              },
+              isPolling: false,
+            });
+          });
         }, 2000);
 
         set({ pollingTimeoutId: timeoutId });
@@ -237,6 +265,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           error: errorMessage,
         },
         pollingTimeoutId: null,
+        isPolling: false,
       });
 
       logger.error('[UploadStore] Status polling failed:', error);

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useBuildingsStore } from '@/store';
 import { sanitizeBuildingName } from '@/utils/sanitize';
 import { useToast } from '@/contexts/ToastContext';
 import { deleteBuilding } from '@/services/api/buildingsApi';
+import type { BuildingFeature } from '@/types';
 import { ConfirmDialog } from '@/components/Modal';
 import { SearchBar } from './SearchBar';
 import { Pagination } from './Pagination';
@@ -50,23 +51,25 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
   // Use filtered results
   const displayedBuildings = search.result.items;
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (selectedIds.size === buildings.length) {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(buildings.map(b => b.id)));
     }
-  };
+  }, [selectedIds.size, buildings]);
 
-  const handleSelectBuilding = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
+  const handleSelectBuilding = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
+  }, []);
 
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
@@ -284,60 +287,11 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
               <p className="hint">Try adjusting your filters</p>
             </div>
           ) : (
-            displayedBuildings.map((building) => (
-              <div
-                key={building.id}
-                className={`building-item ${selectedIds.has(building.id) ? 'selected' : ''}`}
-                onClick={() => {
-                  handleSelectBuilding(building.id);
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(building.id)}
-                  onChange={() => {
-                    handleSelectBuilding(building.id);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                />
-                <div className="building-info">
-                  <div className="building-name">
-                    {sanitizeBuildingName(building.properties.name)}
-                    {building.properties.modelUrl && (
-                      <span
-                        className="model-badge"
-                        title={`3D model available (${building.properties.modelSizeMb != null ? Number(building.properties.modelSizeMb).toFixed(1) : '?'} MB ${building.properties.modelFormat ?? 'glb'})`}
-                        style={{
-                          marginLeft: '8px',
-                          padding: '2px 6px',
-                          backgroundColor: '#4caf50',
-                          color: 'white',
-                          fontSize: '0.75em',
-                          borderRadius: '3px',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        3D
-                      </span>
-                    )}
-                  </div>
-                  <div className="building-details">
-                    <span>📍 {building.geometry.coordinates[1].toFixed(4)}°, {building.geometry.coordinates[0].toFixed(4)}°</span>
-                    {building.properties.height && (
-                      <span>📏 {Number(building.properties.height).toFixed(1)}m</span>
-                    )}
-                    {building.properties.floorCount && (
-                      <span>🏢 {building.properties.floorCount} floors</span>
-                    )}
-                  </div>
-                  <div className="building-meta">
-                    Created: {new Date(building.properties.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            ))
+            <BuildingsList
+              buildings={displayedBuildings}
+              selectedIds={selectedIds}
+              onSelectBuilding={handleSelectBuilding}
+            />
           )}
         </div>
 
@@ -370,5 +324,77 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
     </div>
   );
 }
+
+/**
+ * BuildingsList Component - Memoized for Performance
+ *
+ * Renders the list of building items with memoization to prevent
+ * unnecessary re-renders when parent state changes
+ */
+interface BuildingsListProps {
+  buildings: BuildingFeature[];
+  selectedIds: Set<string>;
+  onSelectBuilding: (id: string) => void;
+}
+
+const BuildingsList = ({ buildings, selectedIds, onSelectBuilding }: BuildingsListProps) => {
+  return useMemo(
+    () => (
+      <>
+        {buildings.map((building) => (
+          <div
+            key={building.id}
+            className={`building-item ${selectedIds.has(building.id) ? 'selected' : ''}`}
+            onClick={() => onSelectBuilding(building.id)}
+          >
+            <input
+              type="checkbox"
+              checked={selectedIds.has(building.id)}
+              onChange={() => onSelectBuilding(building.id)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="building-info">
+              <div className="building-name">
+                {sanitizeBuildingName(building.properties.name)}
+                {building.properties.modelUrl && (
+                  <span
+                    className="model-badge"
+                    title={`3D model available (${building.properties.modelSizeMb != null ? Number(building.properties.modelSizeMb).toFixed(1) : '?'} MB ${building.properties.modelFormat ?? 'glb'})`}
+                    style={{
+                      marginLeft: '8px',
+                      padding: '2px 6px',
+                      backgroundColor: '#4caf50',
+                      color: 'white',
+                      fontSize: '0.75em',
+                      borderRadius: '3px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    3D
+                  </span>
+                )}
+              </div>
+              <div className="building-details">
+                <span>
+                  📍 {building.geometry.coordinates[1].toFixed(4)}°, {building.geometry.coordinates[0].toFixed(4)}°
+                </span>
+                {building.properties.height && (
+                  <span>📏 {Number(building.properties.height).toFixed(1)}m</span>
+                )}
+                {building.properties.floorCount && (
+                  <span>🏢 {building.properties.floorCount} floors</span>
+                )}
+              </div>
+              <div className="building-meta">
+                Created: {new Date(building.properties.createdAt).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        ))}
+      </>
+    ),
+    [buildings, selectedIds, onSelectBuilding]
+  );
+};
 
 export default BuildingsManager;

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { type BuildingFeature } from '@/types';
-import { sanitizeBuildingName } from '@/utils/sanitize';
+import { sanitizeBuildingName, sanitizeHTML } from '@/utils/sanitize';
 import { useToast } from '@/contexts/ToastContext';
 import './InfoPanel.css';
 
@@ -110,19 +110,19 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
               {properties.address && (
                 <div className="info-item full-width">
                   <span className="info-label">Address:</span>
-                  <span className="info-value">{properties.address}</span>
+                  <span className="info-value">{sanitizeHTML(properties.address)}</span>
                 </div>
               )}
               {properties.city && (
                 <div className="info-item">
                   <span className="info-label">City:</span>
-                  <span className="info-value">{properties.city}</span>
+                  <span className="info-value">{sanitizeHTML(properties.city)}</span>
                 </div>
               )}
               {properties.country && (
                 <div className="info-item">
                   <span className="info-label">Country:</span>
-                  <span className="info-value">{properties.country}</span>
+                  <span className="info-value">{sanitizeHTML(properties.country)}</span>
                 </div>
               )}
             </div>

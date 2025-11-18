@@ -11,12 +11,20 @@ import { useToast } from '@/contexts/ToastContext';
 import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
 import { logger } from '@/utils/logger';
 import { useWebVitals, useRenderTime } from '@/hooks/usePerformance';
+import { stopCacheAutoCleanup } from '@/utils/cache';
 import './App.css';
 
 function App() {
   // Performance monitoring
   useWebVitals();
   useRenderTime('App');
+
+  // Cleanup cache interval on app unmount
+  useEffect(() => {
+    return () => {
+      stopCacheAutoCleanup();
+    };
+  }, []);
 
   const [globeReady, setGlobeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,11 +180,15 @@ function App() {
       key: 'm',
       description: 'Toggle 3D models',
       handler: () => {
-        setShow3DModels((prev) => !prev);
-        info(show3DModels ? '2D markers enabled' : '3D models enabled');
+        setShow3DModels((prev) => {
+          const newMode = !prev;
+          // Use updated value instead of stale closure
+          info(newMode ? '3D models enabled' : '2D markers enabled');
+          return newMode;
+        });
       },
     },
-    [show3DModels, info]
+    [info]
   );
 
   // ?: Show keyboard shortcuts help

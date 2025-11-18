@@ -147,12 +147,37 @@ class Cache {
 // Singleton instance
 export const cache = new Cache();
 
-// Auto-cleanup every 5 minutes
-if (typeof window !== 'undefined') {
-  setInterval(() => {
-    cache.cleanup();
-  }, 5 * 60 * 1000);
+// Auto-cleanup interval (5 minutes)
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Start auto-cleanup of expired cache entries
+ */
+export function startCacheAutoCleanup(): void {
+  if (cleanupIntervalId !== null) {
+    return; // Already running
+  }
+
+  if (typeof window !== 'undefined') {
+    cleanupIntervalId = setInterval(() => {
+      cache.cleanup();
+    }, CLEANUP_INTERVAL_MS);
+  }
 }
+
+/**
+ * Stop auto-cleanup (call on app unmount)
+ */
+export function stopCacheAutoCleanup(): void {
+  if (cleanupIntervalId !== null) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
+// Auto-start cleanup on module load
+startCacheAutoCleanup();
 
 /**
  * Cache key generators for consistency
