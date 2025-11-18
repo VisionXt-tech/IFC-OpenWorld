@@ -1,0 +1,147 @@
+/* Spinner Container */
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.spinner-container.spinner-inline {
+  display: inline-flex;
+  padding: 0;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+/* Spinner */
+.spinner {
+  position: relative;
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: spinner-bounce 1.4s ease-in-out infinite both;
+}
+
+.spinner-circle:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.spinner-circle:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes spinner-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Sizes */
+.spinner-sm .spinner-circle {
+  width: 6px;
+  height: 6px;
+}
+
+.spinner-md .spinner-circle {
+  width: 8px;
+  height: 8px;
+}
+
+.spinner-lg .spinner-circle {
+  width: 12px;
+  height: 12px;
+}
+
+.spinner-xl .spinner-circle {
+  width: 16px;
+  height: 16px;
+}
+
+/* Colors */
+.spinner-primary {
+  color: #667eea;
+}
+
+.spinner-white {
+  color: white;
+}
+
+.spinner-danger {
+  color: #f56565;
+}
+
+.spinner-success {
+  color: #48bb78;
+}
+
+/* Spinner Label */
+.spinner-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+/* Button Spinner */
+.button-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.spinner-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: spinner-bounce 1.4s ease-in-out infinite both;
+}
+
+.button-spinner-md .spinner-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.spinner-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.spinner-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .spinner-label {
+    color: #cbd5e0;
+  }
+}

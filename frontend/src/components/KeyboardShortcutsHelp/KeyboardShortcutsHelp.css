@@ -1,0 +1,183 @@
+.shortcuts-help {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.shortcuts-intro {
+  margin: 0 0 1.5rem 0;
+  color: #718096;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.shortcuts-category {
+  margin-bottom: 2rem;
+}
+
+.shortcuts-category:last-child {
+  margin-bottom: 0;
+}
+
+.shortcuts-category-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #f7fafc;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.shortcut-item:hover {
+  background: #edf2f7;
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 150px;
+}
+
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  min-width: 2rem;
+  background: white;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Dank Mono', monospace;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #2d3748;
+  box-shadow:
+    0 1px 0 0 #cbd5e0,
+    0 2px 0 0 rgba(0, 0, 0, 0.05);
+  text-transform: uppercase;
+}
+
+.shortcut-plus {
+  margin: 0 0.125rem;
+  color: #a0aec0;
+  font-size: 0.75rem;
+}
+
+.shortcut-description {
+  flex: 1;
+  text-align: right;
+  color: #4a5568;
+  font-size: 0.875rem;
+}
+
+.shortcuts-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #a0aec0;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .shortcuts-intro,
+  .shortcut-description {
+    color: #cbd5e0;
+  }
+
+  .shortcuts-category-title {
+    color: #e2e8f0;
+    border-bottom-color: #4a5568;
+  }
+
+  .shortcut-item {
+    background: #2d3748;
+  }
+
+  .shortcut-item:hover {
+    background: #374151;
+  }
+
+  .shortcut-key {
+    background: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+    box-shadow:
+      0 1px 0 0 #4a5568,
+      0 2px 0 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .shortcut-plus {
+    color: #718096;
+  }
+
+  .shortcuts-empty {
+    color: #718096;
+  }
+}
+
+:root.dark .shortcuts-intro,
+:root.dark .shortcut-description {
+  color: #cbd5e0;
+}
+
+:root.dark .shortcuts-category-title {
+  color: #e2e8f0;
+  border-bottom-color: #4a5568;
+}
+
+:root.dark .shortcut-item {
+  background: #2d3748;
+}
+
+:root.dark .shortcut-item:hover {
+  background: #374151;
+}
+
+:root.dark .shortcut-key {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  box-shadow:
+    0 1px 0 0 #4a5568,
+    0 2px 0 0 rgba(0, 0, 0, 0.3);
+}
+
+:root.dark .shortcut-plus {
+  color: #718096;
+}
+
+:root.dark .shortcuts-empty {
+  color: #718096;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .shortcut-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .shortcut-keys {
+    min-width: auto;
+  }
+
+  .shortcut-description {
+    text-align: left;
+  }
+}

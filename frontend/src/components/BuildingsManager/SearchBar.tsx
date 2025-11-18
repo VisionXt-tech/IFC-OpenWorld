@@ -4,7 +4,8 @@
  * Search bar with filters for BuildingsManager
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import type { BuildingSearchFilters, FilterCondition } from '@/utils/search';
 import './SearchBar.css';
 
@@ -19,10 +20,18 @@ export function SearchBar({ onSearchChange, onFiltersChange, totalResults }: Sea
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<BuildingSearchFilters>({});
 
+  // Performance: Debounce search query (300ms delay)
+  const debouncedQuery = useDebounce(query, 300);
+
+  // Trigger search when debounced query changes
+  useEffect(() => {
+    onSearchChange(debouncedQuery);
+  }, [debouncedQuery, onSearchChange]);
+
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
-    onSearchChange(newQuery);
+    // onSearchChange is now called via useEffect with debouncing
   };
 
   const handleFilterChange = (field: keyof BuildingSearchFilters, value: unknown) => {

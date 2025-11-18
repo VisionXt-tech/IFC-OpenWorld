@@ -95,6 +95,9 @@ export interface ImportMetaEnv {
   readonly VITE_MAX_UPLOAD_SIZE_MB: string;
   readonly VITE_ALLOWED_FILE_EXTENSIONS: string;
   readonly VITE_ENABLE_DEBUG: string;
+  readonly DEV: boolean; // Vite built-in: true in development, false in production
+  readonly PROD: boolean; // Vite built-in: true in production, false in development
+  readonly MODE: string; // Vite built-in: current mode (development, production, etc.)
 }
 
 declare global {

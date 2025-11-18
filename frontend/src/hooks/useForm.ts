@@ -4,7 +4,7 @@
  * Advanced hooks for form handling with validation support
  */
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useFormValidation, type FormValidationConfig, type ValidationRule, ValidationRules } from '@/utils/validation';
 import { logger } from '@/utils/logger';
 
@@ -13,7 +13,7 @@ import { logger } from '@/utils/logger';
  */
 export interface FormFieldProps<T> {
   value: T;
-  onChange: (event: { target: { value: unknown; type?: string; checked?: boolean } }) => void;
+  onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   onBlur: () => void;
   error?: string;
   touched?: boolean;
@@ -42,7 +42,7 @@ export function useFormField<T extends Record<string, unknown>, K extends keyof 
 /**
  * Building form data
  */
-export interface BuildingFormData {
+export interface BuildingFormData extends Record<string, unknown> {
   name: string;
   address: string;
   city: string;
@@ -137,7 +137,7 @@ export function useBuildingForm(initialData?: Partial<BuildingFormData>) {
 /**
  * Search form data
  */
-export interface SearchFormData {
+export interface SearchFormData extends Record<string, unknown> {
   query: string;
   country?: string;
   city?: string;

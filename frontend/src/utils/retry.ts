@@ -220,8 +220,8 @@ export function makeRetryable<TArgs extends unknown[], TReturn>(
  */
 export function retry(options: RetryOptions = {}) {
   return function (
-    target: unknown,
-    propertyKey: string,
+    _target: unknown,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;

@@ -245,7 +245,18 @@ export const builtInInterceptors = {
         try {
           // Re-run the request with retry logic
           const retryFn = async () => {
-            const response = await fetch(config.url, config);
+            // Extract only fetch-compatible properties
+            const fetchConfig: RequestInit = {
+              method: config.method,
+              headers: config.headers,
+              body: config.body,
+              signal: config.signal,
+              credentials: config.credentials,
+              mode: config.mode,
+              redirect: config.redirect,
+              referrer: config.referrer,
+            };
+            const response = await fetch(config.url, fetchConfig);
             if (!response.ok) {
               const error = new Error(response.statusText);
               Object.assign(error, { statusCode: response.status });
@@ -443,8 +454,20 @@ export async function makeRequest<T>(config: RequestConfig): Promise<ResponseDat
     // Run request interceptors
     let processedConfig = await interceptorManager.runRequestInterceptors(config);
 
+    // Extract only fetch-compatible properties
+    const fetchConfig: RequestInit = {
+      method: processedConfig.method,
+      headers: processedConfig.headers,
+      body: processedConfig.body,
+      signal: processedConfig.signal,
+      credentials: processedConfig.credentials,
+      mode: processedConfig.mode,
+      redirect: processedConfig.redirect,
+      referrer: processedConfig.referrer,
+    };
+
     // Make the request
-    const response = await fetch(processedConfig.url, processedConfig);
+    const response = await fetch(processedConfig.url, fetchConfig);
 
     // Parse response
     let data: T;
