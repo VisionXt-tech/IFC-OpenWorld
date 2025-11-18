@@ -219,7 +219,7 @@ export async function getOrFetch<T>(
  */
 export function getViewportCacheKey(
   bbox: [number, number, number, number],
-  gridSize: number = 0.1 // degrees
+  gridSize = 0.1 // degrees
 ): string {
   const [minLon, minLat, maxLon, maxLat] = bbox;
 

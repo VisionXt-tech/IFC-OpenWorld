@@ -37,9 +37,7 @@ export interface FieldValidation<T = unknown> {
 /**
  * Form validation config
  */
-export interface FormValidationConfig {
-  [field: string]: FieldValidation;
-}
+export type FormValidationConfig = Record<string, FieldValidation>;
 
 /**
  * Form validation state
@@ -426,10 +424,10 @@ export function useFormValidation<T extends Record<string, unknown>>(
         event.preventDefault();
 
         // Mark all fields as touched
-        const allTouched = Object.keys(values).reduce((acc, key) => {
+        const allTouched = Object.keys(values).reduce<Partial<Record<keyof T, boolean>>>((acc, key) => {
           acc[key as keyof T] = true;
           return acc;
-        }, {} as Partial<Record<keyof T, boolean>>);
+        }, {});
         setTouched(allTouched);
 
         // Validate form
@@ -452,7 +450,7 @@ export function useFormValidation<T extends Record<string, unknown>>(
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      validationTimeouts.current.forEach((timeout: ReturnType<typeof setTimeout>) => clearTimeout(timeout));
+      validationTimeouts.current.forEach((timeout: ReturnType<typeof setTimeout>) => { clearTimeout(timeout); });
     };
   }, []);
 
