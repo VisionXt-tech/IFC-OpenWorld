@@ -7,9 +7,14 @@ import InfoPanel from '@/components/InfoPanel';
 import { useUploadStore, useBuildingsStore } from '@/store';
 import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/utils/logger';
+import { useWebVitals, useRenderTime } from '@/hooks/usePerformance';
 import './App.css';
 
 function App() {
+  // Performance monitoring
+  useWebVitals();
+  useRenderTime('App');
+
   const [globeReady, setGlobeReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUploadZone, setShowUploadZone] = useState(false); // Start closed to allow free navigation
