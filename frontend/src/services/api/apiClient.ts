@@ -1,5 +1,6 @@
 import { config } from '@/config';
 import type { ApiError } from '@/types';
+import { logger } from '@/utils/logger';
 
 /**
  * API Client
@@ -81,10 +82,10 @@ class ApiClient {
       this.csrfToken = data.csrfToken;
 
       if (config.features.debug) {
-        console.log('[ApiClient] CSRF token fetched');
+        logger.debug('[ApiClient] CSRF token fetched');
       }
     } catch (error) {
-      console.error('[ApiClient] Failed to fetch CSRF token:', error);
+      logger.error('[ApiClient] Failed to fetch CSRF token:', error);
       throw error;
     }
   }
@@ -160,7 +161,7 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
 
     if (config.features.debug) {
-      console.log(`[ApiClient] ${options.method} ${url}`);
+      logger.debug(`[ApiClient] ${options.method} ${url}`);
     }
 
     try {
@@ -189,7 +190,7 @@ class ApiClient {
         };
 
         if (config.features.debug) {
-          console.error('[ApiClient] Error:', apiError);
+          logger.error('[ApiClient] Error:', apiError);
         }
 
         const error = new Error(apiError.message);
@@ -200,7 +201,7 @@ class ApiClient {
       return data as T;
     } catch (error) {
       if (config.features.debug) {
-        console.error('[ApiClient] Request failed:', error);
+        logger.error('[ApiClient] Request failed:', error);
       }
 
       // Re-throw ApiError as-is (already an Error object from above)

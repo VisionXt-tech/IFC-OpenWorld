@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { uploadIFCFile, getProcessingStatus } from '@/services/api';
 import type { UploadStatus, ProcessingStatusResponse } from '@/types';
+import { logger } from '@/utils/logger';
 
 /**
  * Upload Store
@@ -86,7 +87,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         },
       });
 
-      console.log('[UploadStore] Upload complete, starting IFC processing', { taskId, fileId });
+      logger.debug('[UploadStore] Upload complete, starting IFC processing', { taskId, fileId });
 
       // Start polling for processing status
       void get().pollProcessingStatus();
@@ -102,7 +103,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         },
       }));
 
-      console.error('[UploadStore] Upload failed:', error);
+      logger.error('[UploadStore] Upload failed:', error);
     }
   },
 
@@ -139,7 +140,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
     try {
       const statusResponse = await getProcessingStatus(taskId);
 
-      console.log('[UploadStore] Task status:', statusResponse);
+      logger.debug('[UploadStore] Task status:', statusResponse);
 
       if (statusResponse.status === 'SUCCESS') {
         // Processing complete - but check if result contains an error
@@ -161,7 +162,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
             pollingTimeoutId: null,
           });
 
-          console.error('[UploadStore] Processing failed:', errorMessage);
+          logger.error('[UploadStore] Processing failed:', errorMessage);
         } else if (result && typeof result === 'object' && 'status' in result) {
           // Task completed successfully with coordinates
           set({
@@ -173,7 +174,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
             pollingTimeoutId: null,
           });
 
-          console.log('[UploadStore] Processing complete:', result);
+          logger.debug('[UploadStore] Processing complete:', result);
         } else {
           // Unexpected result format
           set({
@@ -185,7 +186,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
             pollingTimeoutId: null,
           });
 
-          console.error('[UploadStore] Unexpected result format:', result);
+          logger.error('[UploadStore] Unexpected result format:', result);
         }
       } else if (statusResponse.status === 'FAILURE') {
         set({
@@ -197,7 +198,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
           pollingTimeoutId: null,
         });
 
-        console.error('[UploadStore] Processing failed:', statusResponse.error);
+        logger.error('[UploadStore] Processing failed:', statusResponse.error);
       } else {
         // BUGFIX: Still processing (PENDING, STARTED, RETRY), schedule next poll and track timeout ID
         const timeoutId = setTimeout(() => {
@@ -219,7 +220,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         pollingTimeoutId: null,
       });
 
-      console.error('[UploadStore] Status polling failed:', error);
+      logger.error('[UploadStore] Status polling failed:', error);
     }
   },
 

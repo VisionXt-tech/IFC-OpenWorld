@@ -6,6 +6,7 @@ import BuildingsManager from '@/components/BuildingsManager';
 import InfoPanel from '@/components/InfoPanel';
 import { useUploadStore, useBuildingsStore } from '@/store';
 import { useToast } from '@/contexts/ToastContext';
+import { logger } from '@/utils/logger';
 import './App.css';
 
 function App() {
@@ -30,31 +31,31 @@ function App() {
   const handleGlobeReady = useCallback((viewer: Viewer) => {
     viewerRef.current = viewer;
     setGlobeReady(true);
-    console.log('[App] CesiumGlobe ready', viewer);
+    logger.debug('[App] CesiumGlobe ready', viewer);
   }, []);
 
   const handleGlobeError = useCallback((err: Error) => {
     setError(err.message);
-    console.error('[App] CesiumGlobe error:', err);
+    logger.error('[App] CesiumGlobe error:', err);
   }, []);
 
   const handleFileAccepted = useCallback(async (file: File) => {
-    console.log('[App] File accepted:', file.name);
+    logger.debug('[App] File accepted:', file.name);
     try {
       await startUpload(file);
     } catch (error) {
-      console.error('[App] Upload failed:', error);
+      logger.error('[App] Upload failed:', error);
       setError(error instanceof Error ? error.message : 'Upload failed');
     }
   }, [startUpload]);
 
   const handleCancelUpload = useCallback(() => {
-    console.log('[App] Upload cancelled');
+    logger.debug('[App] Upload cancelled');
     cancelUpload();
   }, [cancelUpload]);
 
   const handleBuildingClick = useCallback((buildingId: string) => {
-    console.log('[App] Building clicked:', buildingId);
+    logger.debug('[App] Building clicked:', buildingId);
     setSelectedBuildingId(buildingId);
   }, []);
 
@@ -72,9 +73,9 @@ function App() {
   // BUGFIX: Handle promise properly and use stable reference
   useEffect(() => {
     if (globeReady) {
-      console.log('[App] Globe ready, fetching buildings...');
+      logger.debug('[App] Globe ready, fetching buildings...');
       void fetchBuildings().catch((error) => {
-        console.error('[App] Failed to fetch buildings:', error);
+        logger.error('[App] Failed to fetch buildings:', error);
         setError('Failed to load buildings');
       });
     }
@@ -111,12 +112,12 @@ function App() {
   // BUGFIX: Handle promises properly
   useEffect(() => {
     if (uploadStatus.status === 'success') {
-      console.log('[App] Upload complete!', { fileId: uploadStatus.uploadedFileId });
+      logger.debug('[App] Upload complete!', { fileId: uploadStatus.uploadedFileId });
 
       // Reload buildings from database to show the new marker
-      console.log('[App] Reloading buildings from database...');
+      logger.debug('[App] Reloading buildings from database...');
       void fetchBuildings().catch((error) => {
-        console.error('[App] Failed to reload buildings:', error);
+        logger.error('[App] Failed to reload buildings:', error);
         setError('Failed to reload buildings after upload');
       });
 
@@ -124,7 +125,7 @@ function App() {
       if (processingResult && processingResult.status === 'completed' && viewerRef.current) {
         const { latitude, longitude } = processingResult.coordinates;
 
-        console.log('[App] Flying to building:', {
+        logger.debug('[App] Flying to building:', {
           name: processingResult.metadata.name,
           coordinates: { latitude, longitude },
         });

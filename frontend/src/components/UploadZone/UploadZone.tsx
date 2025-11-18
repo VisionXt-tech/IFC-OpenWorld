@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
 import { config } from '@/config';
+import { logger } from '@/utils/logger';
 import './UploadZone.css';
 
 /**
@@ -83,7 +84,7 @@ function UploadZone({
       if (!file) return;
 
       if (config.features.debug) {
-        console.log('[UploadZone] File accepted:', {
+        logger.debug('[UploadZone] File accepted:', {
           name: file.name,
           size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
           type: file.type
