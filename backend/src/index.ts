@@ -97,8 +97,8 @@ app.use('/api/v1', csrfRouter); // CSRF token endpoint
 app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/buildings', buildingsRouter);
 
-// Static file routes (3D models)
-app.use('/models', modelsRouter);
+// API v1 routes (3D models)
+app.use('/api/v1/models', modelsRouter);
 
 // Error handling (must be last)
 app.use(csrfErrorHandler); // CSRF error handler
