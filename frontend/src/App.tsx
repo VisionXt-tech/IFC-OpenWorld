@@ -219,8 +219,9 @@ function App() {
       logger.debug('[App] Upload complete!', { fileId: uploadStatus.uploadedFileId });
 
       // Reload buildings from database to show the new marker
-      logger.debug('[App] Reloading buildings from database...');
-      void fetchBuildings().catch((error) => {
+      // IMPORTANT: Bypass cache to ensure fresh data after upload
+      logger.debug('[App] Reloading buildings from database (bypassing cache)...');
+      void fetchBuildings(undefined, true).catch((error) => {
         logger.error('[App] Failed to reload buildings:', error);
         setError('Failed to reload buildings after upload');
       });
