@@ -109,8 +109,8 @@ function BuildingsManager({ onClose }: BuildingsManagerProps) {
       const succeeded = results.filter(r => r.status === 'fulfilled');
       const failed = results.filter(r => r.status === 'rejected');
 
-      // Refresh buildings list
-      await fetchBuildings().catch((err) => {
+      // Refresh buildings list - bypass cache to ensure fresh data after delete
+      await fetchBuildings(undefined, true).catch((err) => {
         logger.error('[BuildingsManager] Failed to refresh buildings:', err);
       });
       setSelectedIds(new Set());

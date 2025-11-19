@@ -20,7 +20,7 @@ interface BuildingsStore {
   error: string | null;
 
   // Actions
-  fetchBuildings: (bbox?: [number, number, number, number]) => Promise<void>;
+  fetchBuildings: (bbox?: [number, number, number, number], bypassCache?: boolean) => Promise<void>;
   fetchBuildingById: (id: string) => Promise<void>;
   addBuilding: (building: BuildingFeature) => void;
   selectBuilding: (building: Building | null) => void;
@@ -34,18 +34,18 @@ export const useBuildingsStore = create<BuildingsStore>((set) => ({
   isLoading: false,
   error: null,
 
-  fetchBuildings: async (bbox) => {
+  fetchBuildings: async (bbox, bypassCache = false) => {
     set({ isLoading: true, error: null });
 
     try {
-      const response = await getBuildings(bbox ? { bbox } : undefined);
+      const response = await getBuildings(bbox ? { bbox, bypassCache } : { bypassCache });
 
       set({
         buildings: response.features,
         isLoading: false,
       });
 
-      logger.debug(`[BuildingsStore] Fetched ${response.features.length} buildings`);
+      logger.debug(`[BuildingsStore] Fetched ${response.features.length} buildings (cache bypassed: ${bypassCache})`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to fetch buildings';
