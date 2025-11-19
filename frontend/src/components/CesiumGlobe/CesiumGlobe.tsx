@@ -201,17 +201,30 @@ function CesiumGlobe({
   useEffect(() => {
     if (!viewer.current) return;
 
-    logger.debug(`[CesiumGlobe] Updating markers (${buildings.length} buildings)`);
+    logger.debug(`[CesiumGlobe] Updating markers (${buildings.length} buildings, 3D mode: ${show3DModels})`);
 
     // Create a set of current building IDs for fast lookup
     const currentBuildingIds = new Set(buildings.map((b) => b.id));
 
-    // Remove markers for deleted buildings
+    // Remove markers for deleted buildings OR if marker type needs to change (2D ↔ 3D)
     markerMap.current.forEach((entity, id) => {
-      if (!currentBuildingIds.has(id) && viewer.current) {
+      const shouldRemove = !currentBuildingIds.has(id);
+
+      // Check if marker type needs to change
+      const building = buildings.find(b => b.id === id);
+      let typeChanged = false;
+
+      if (building && viewer.current) {
+        const has3DModel = !!building.properties.modelUrl;
+        const shouldBe3D = show3DModels && has3DModel;
+        const is3D = entity.model !== undefined;
+        typeChanged = is3D !== shouldBe3D;
+      }
+
+      if ((shouldRemove || typeChanged) && viewer.current) {
         viewer.current.entities.remove(entity);
         markerMap.current.delete(id);
-        logger.debug(`[CesiumGlobe] Removed marker: ${id}`);
+        logger.debug(`[CesiumGlobe] Removed marker: ${id} (deleted: ${shouldRemove}, typeChanged: ${typeChanged})`);
       }
     });
 

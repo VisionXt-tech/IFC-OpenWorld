@@ -13,6 +13,7 @@ import type { BuildingCollection, Building } from '@/types';
 export interface GetBuildingsParams {
   bbox?: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
   limit?: number;
+  bypassCache?: boolean; // Force fresh data (useful after delete)
 }
 
 /**
@@ -32,7 +33,7 @@ export async function getBuildings(params?: GetBuildingsParams): Promise<Buildin
     endpoint += `?limit=${params.limit}`;
   }
 
-  return apiClient.get<BuildingCollection>(endpoint);
+  return apiClient.get<BuildingCollection>(endpoint, params?.bypassCache ?? false);
 }
 
 /**
