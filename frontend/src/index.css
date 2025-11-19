@@ -17,22 +17,42 @@
   box-sizing: border-box;
 }
 
-/* Smooth theme transitions for all elements */
-*,
-*::before,
-*::after {
+/* Smooth theme transitions - ONLY for specific elements (not * to avoid Cesium conflicts) */
+body,
+.app,
+.app-header-overlay,
+.app-footer-overlay,
+.card,
+button:not(.cesium-button),
+.toast,
+.modal,
+.panel,
+input,
+textarea,
+select {
   transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
               color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Disable transitions for specific elements that need instant feedback */
+/* Disable transitions for elements that need instant feedback */
 button:active,
 input:focus,
 textarea:focus,
 select:focus {
   transition: none;
+}
+
+/* Disable ALL transitions on Cesium elements to prevent rendering issues */
+.cesium-viewer,
+.cesium-viewer *,
+.cesium-widget,
+.cesium-widget *,
+#cesiumContainer,
+#cesiumContainer * {
+  transition: none !important;
+  animation: none !important;
 }
 
 html, body {
