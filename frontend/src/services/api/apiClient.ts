@@ -92,10 +92,13 @@ class ApiClient {
 
   /**
    * Make a GET request
+   * @param bypassCache - If true, bypasses HTTP cache (useful after mutations like DELETE)
    */
-  async get<T>(endpoint: string): Promise<T> {
+  async get<T>(endpoint: string, bypassCache = false): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'GET',
+      // Bypass cache by setting cache: 'no-cache' which forces revalidation
+      ...(bypassCache && { cache: 'no-cache' }),
     });
   }
 
