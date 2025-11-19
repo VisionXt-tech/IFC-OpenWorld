@@ -62,7 +62,7 @@ export function ThemeProvider({
     };
 
     mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    return () => { mediaQuery.removeEventListener('change', handleChange); };
   }, []);
 
   // Apply theme to document
@@ -170,7 +170,7 @@ export function ThemeSelector() {
       <select
         id="theme-select"
         value={theme}
-        onChange={(e) => setTheme(e.target.value as Theme)}
+        onChange={(e) => { setTheme(e.target.value as Theme); }}
         className="theme-select"
       >
         <option value="light">Light</option>

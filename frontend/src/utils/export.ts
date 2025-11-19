@@ -220,7 +220,7 @@ export function printData(html: string): void {
  * Convert buildings data to CSV format
  */
 export function exportBuildingsCSV(
-  buildings: Array<{
+  buildings: {
     id: string;
     properties: {
       name: string | null;
@@ -234,7 +234,7 @@ export function exportBuildingsCSV(
     geometry: {
       coordinates: [number, number];
     };
-  }>,
+  }[],
   filename = 'buildings.csv'
 ): void {
   const data = buildings.map((b) => ({

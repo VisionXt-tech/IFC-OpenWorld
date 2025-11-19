@@ -1,11 +1,9 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import type { Viewer } from 'cesium';
-import CesiumGlobe, { flyToLocation } from '@/components/CesiumGlobe';
-import UploadZone from '@/components/UploadZone';
-import BuildingsManager from '@/components/BuildingsManager';
 import InfoPanel from '@/components/InfoPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
+import { Spinner } from '@/components/Spinner';
 import { useUploadStore, useBuildingsStore } from '@/store';
 import { useToast } from '@/contexts/ToastContext';
 import { useKeyboardShortcut } from '@/utils/keyboardShortcuts';
@@ -13,6 +11,17 @@ import { logger } from '@/utils/logger';
 import { useWebVitals, useRenderTime } from '@/hooks/usePerformance';
 import { stopCacheAutoCleanup } from '@/utils/cache';
 import './App.css';
+
+// Lazy load heavy components for better performance
+const CesiumGlobe = lazy(() => import('@/components/CesiumGlobe'));
+const UploadZone = lazy(() => import('@/components/UploadZone'));
+const BuildingsManager = lazy(() => import('@/components/BuildingsManager'));
+
+// Import flyToLocation separately for use before lazy load
+let flyToLocationFn: typeof import('@/components/CesiumGlobe').flyToLocation;
+import('@/components/CesiumGlobe').then((mod) => {
+  flyToLocationFn = mod.flyToLocation;
+});
 
 function App() {
   // Performance monitoring
@@ -157,7 +166,7 @@ function App() {
     {
       key: 'u',
       description: 'Toggle upload panel',
-      handler: () => setShowUploadZone((prev) => !prev),
+      handler: () => { setShowUploadZone((prev) => !prev); },
     },
     []
   );
@@ -168,7 +177,7 @@ function App() {
     {
       key: 'b',
       description: 'Toggle buildings manager',
-      handler: () => setShowBuildingsManager((prev) => !prev),
+      handler: () => { setShowBuildingsManager((prev) => !prev); },
     },
     []
   );
@@ -198,7 +207,7 @@ function App() {
       key: '?',
       shift: true,
       description: 'Show keyboard shortcuts help',
-      handler: () => setShowShortcutsHelp(true),
+      handler: () => { setShowShortcutsHelp(true); },
     },
     []
   );
@@ -231,8 +240,8 @@ function App() {
         // BUGFIX: Type-safe null check before flying
         // Fly to building location after a short delay
         setTimeout(() => {
-          if (viewerRef.current) {
-            flyToLocation(viewerRef.current, longitude, latitude, 5000, 3);
+          if (viewerRef.current && flyToLocationFn) {
+            flyToLocationFn(viewerRef.current, longitude, latitude, 5000, 3);
           }
         }, 500);
       }
@@ -293,24 +302,28 @@ function App() {
       </header>
 
       <main id="main-content">
-        <CesiumGlobe
-          onReady={handleGlobeReady}
-          onError={handleGlobeError}
-          onBuildingClick={handleBuildingClick}
-          show3DModels={show3DModels}
-        />
+        <Suspense fallback={<Spinner size="lg" label="Loading 3D Globe..." />}>
+          <CesiumGlobe
+            onReady={handleGlobeReady}
+            onError={handleGlobeError}
+            onBuildingClick={handleBuildingClick}
+            show3DModels={show3DModels}
+          />
+        </Suspense>
       </main>
 
       {showUploadZone && (
         <div className="upload-panel-overlay">
-          <UploadZone
-            onFileAccepted={handleFileAccepted}
-            progress={uploadStatus.progress}
-            isUploading={isUploading}
-            error={uploadStatus.error}
-            onCancel={handleCancelUpload}
-            onReset={resetUpload}
-          />
+          <Suspense fallback={<Spinner size="md" label="Loading upload zone..." />}>
+            <UploadZone
+              onFileAccepted={handleFileAccepted}
+              progress={uploadStatus.progress}
+              isUploading={isUploading}
+              error={uploadStatus.error}
+              onCancel={handleCancelUpload}
+              onReset={resetUpload}
+            />
+          </Suspense>
           <button
             className="close-upload-button"
             onClick={handleToggleUploadZone}
@@ -361,9 +374,11 @@ function App() {
       </div>
 
       {showBuildingsManager && (
-        <BuildingsManager
-          onClose={handleToggleBuildingsManager}
-        />
+        <Suspense fallback={<Spinner size="md" label="Loading buildings manager..." />}>
+          <BuildingsManager
+            onClose={handleToggleBuildingsManager}
+          />
+        </Suspense>
       )}
 
       {selectedBuilding && (
@@ -373,7 +388,7 @@ function App() {
       {/* Keyboard Shortcuts Help Modal */}
       <KeyboardShortcutsHelp
         isOpen={showShortcutsHelp}
-        onClose={() => setShowShortcutsHelp(false)}
+        onClose={() => { setShowShortcutsHelp(false); }}
       />
     </div>
   );

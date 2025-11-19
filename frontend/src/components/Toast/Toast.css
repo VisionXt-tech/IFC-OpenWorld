@@ -124,6 +124,37 @@
   pointer-events: auto;
 }
 
+/* Modern Toast Animations */
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(calc(100% + var(--spacing-4)));
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(calc(100% + var(--spacing-4)));
+    opacity: 0;
+  }
+}
+
+.toast--entering {
+  animation: toast-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast--exiting {
+  animation: toast-slide-out 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .toast {

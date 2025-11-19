@@ -175,7 +175,7 @@ function InfoPanel({ building, onClose }: InfoPanelProps) {
                 <div className="info-item full-width">
                   <span className="info-label">Hint:</span>
                   <span className="info-value" style={{ fontSize: '0.9em', fontStyle: 'italic' }}>
-                    Use the "🏢 3D View" toggle to see this building in 3D
+                    Use the &quot;🏢 3D View&quot; toggle to see this building in 3D
                   </span>
                 </div>
               </div>

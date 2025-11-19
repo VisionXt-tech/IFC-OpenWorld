@@ -220,7 +220,7 @@ export const builtInInterceptors = {
         config.signal = controller.signal;
         config.metadata = { ...config.metadata, abortController: controller };
 
-        setTimeout(() => controller.abort(), timeoutMs);
+        setTimeout(() => { controller.abort(); }, timeoutMs);
       }
       return config;
     },
@@ -452,7 +452,7 @@ export function setupDefaultInterceptors(): void {
 export async function makeRequest<T>(config: RequestConfig): Promise<ResponseData<T>> {
   try {
     // Run request interceptors
-    let processedConfig = await interceptorManager.runRequestInterceptors(config);
+    const processedConfig = await interceptorManager.runRequestInterceptors(config);
 
     // Extract only fetch-compatible properties
     const fetchConfig: RequestInit = {
