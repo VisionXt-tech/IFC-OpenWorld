@@ -10,7 +10,7 @@ uvicorn[standard]==0.24.0  # ASGI server
 
 # Task Queue
 celery[redis]==5.3.4  # Async task processing
-redis==4.6.0  # Redis client (compatible with celery 5.3.4)
+redis==7.0.1  # Redis client (compatible with celery 5.3.4)
 
 # Database
 psycopg2-binary==2.9.9  # PostgreSQL adapter
