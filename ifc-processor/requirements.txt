@@ -6,7 +6,7 @@ ifcopenshell==0.8.3  # IFC file parsing and coordinate extraction
 
 # Web Framework
 fastapi==0.104.1
-uvicorn[standard]==0.24.0  # ASGI server
+uvicorn[standard]==0.38.0  # ASGI server
 
 # Task Queue
 celery[redis]==5.3.4  # Async task processing
