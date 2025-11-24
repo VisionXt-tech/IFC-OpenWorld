@@ -17,7 +17,7 @@ psycopg2-binary==2.9.9  # PostgreSQL adapter
 sqlalchemy==2.0.23  # ORM for database operations
 
 # AWS S3
-boto3==1.29.7  # S3 file operations
+boto3==1.40.63  # S3 file operations
 
 # Validation & Parsing
 pydantic==2.5.2  # Data validation
