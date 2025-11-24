@@ -20,7 +20,7 @@ sqlalchemy==2.0.23  # ORM for database operations
 boto3==1.29.7  # S3 file operations
 
 # Validation & Parsing
-pydantic==2.5.2  # Data validation
+pydantic==2.12.3  # Data validation
 pydantic-settings==2.1.0  # Settings management
 
 # Security
